@@ -38,6 +38,7 @@ Many schedulers are implemented from the [k-diffusion](https://github.com/crowso
 | DPM adaptive        | N/A                                 |                                                                                                               |
 | DPM fast            | N/A                                 |                                                                                                               |
 | Euler               | [`EulerDiscreteScheduler`]          |                                                                                                               |
+| Euler Lite          | [`EulerLiteScheduler`]              | lite Euler ODE (`s_churn=0`, leading timesteps)                                                               |
 | Euler a             | [`EulerAncestralDiscreteScheduler`] |                                                                                                               |
 | Heun                | [`HeunDiscreteScheduler`]           |                                                                                                               |
 | LMS                 | [`LMSDiscreteScheduler`]            |                                                                                                               |
