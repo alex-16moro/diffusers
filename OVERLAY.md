@@ -31,13 +31,12 @@ The first contribution:
 
 Do not copy `ramp-kit/examples/candidate_scheduler/`.
 
-`.cursor/mcp.json` ships **stdio `diffusers-docs` only** (`python3 -u
-.cursor/mcp-diffusers-docs.py`). Do not enable Hub HTTP MCP (OAuth). Cloud
-dropdown: `diffusers-docs-mcp` (PATH shim from `install-docs-mcp.sh`) or the
-same python3 command. The launcher finds `ramp-kit/tools/docs_mcp_server.py`
-from `/agent` as well as the repo root.
+Default `.cursor/mcp.json` is `{"mcpServers":{}}`. Ground in root `AGENTS.md`,
+`.ai/`, and the reference source those files name. Optional keyword search:
 
-Hub HTTP and extra servers stay in `.cursor/mcp.optional.json`.
+```bash
+python3 ramp-kit/tools/docs_mcp_server.py --query "set_timesteps"
+```
 
 ## Demo (Cloud Agent)
 

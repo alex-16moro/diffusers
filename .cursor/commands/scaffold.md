@@ -26,9 +26,19 @@ Read `ramp-kit/conventions/rules.yaml`. Blocking ids for this contribution:
 SCHED001, SCHED002, SCHED003, REPRO001, DEVICE001, DEPR001, MUT001, TEST001,
 TEST002.
 
-Read root `AGENTS.md` (and `.ai/` only as that guide directs). The templates
-already satisfy the overlay registry. Library CI (`make style` / `make quality`
-/ copies / dummies) is also required before the PR.
+Read root `AGENTS.md` and `.ai/` (library guide / review-rules / skills). Do
+not overwrite them. Also read the reference source those files name. Optional
+keyword search of this checkout's docs:
+
+```bash
+python3 ramp-kit/tools/docs_mcp_server.py --query "set_timesteps"
+```
+
+That CLI is a fallback, not a deliverable. Default `.cursor/mcp.json` has no
+servers.
+
+The templates already satisfy the overlay registry. Library CI (`make style` /
+`make quality` / copies / dummies) is also required before the PR.
 
 Stay inside `.cursorignore`. Do not read or copy
 `ramp-kit/examples/candidate_scheduler/`.
