@@ -818,6 +818,8 @@
       title: MiniMaxH3Scheduler
     - local: api/schedulers/pndm
       title: PNDMScheduler
+    - local: api/schedulers/pndm_lite
+      title: PNDMLiteScheduler
     - local: api/schedulers/repaint
       title: RePaintScheduler
     - local: api/schedulers/score_sde_ve

@@ -75,6 +75,7 @@ else:
     _import_structure["scheduling_ltx_euler_ancestral_rf"] = ["LTXEulerAncestralRFScheduler"]
     _import_structure["scheduling_minimax_h3"] = ["MiniMaxH3Scheduler"]
     _import_structure["scheduling_pndm"] = ["PNDMScheduler"]
+    _import_structure["scheduling_pndm_lite"] = ["PNDMLiteScheduler"]
     _import_structure["scheduling_repaint"] = ["RePaintScheduler"]
     _import_structure["scheduling_sasolver"] = ["SASolverScheduler"]
     _import_structure["scheduling_scm"] = ["SCMScheduler"]
@@ -160,6 +161,7 @@ if TYPE_CHECKING or DIFFUSERS_SLOW_IMPORT:
         from .scheduling_ltx_euler_ancestral_rf import LTXEulerAncestralRFScheduler
         from .scheduling_minimax_h3 import MiniMaxH3Scheduler
         from .scheduling_pndm import PNDMScheduler
+        from .scheduling_pndm_lite import PNDMLiteScheduler
         from .scheduling_repaint import RePaintScheduler
         from .scheduling_sasolver import SASolverScheduler
         from .scheduling_scm import SCMScheduler
