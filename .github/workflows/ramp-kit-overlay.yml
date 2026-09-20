@@ -1,0 +1,36 @@
+# Ramp Kit overlay CI for the huggingface/diffusers FORK.
+# File-scoped convention_check on changed scheduler/test files only.
+# Never convention_check --all. Never replace inherited Hugging Face workflows.
+# Copied by tools/attach_library.py to .github/workflows/ramp-kit-overlay.yml.
+name: ramp-kit-overlay
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  overlay-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Clone ramp-kit (customer gate, not the library)
+        run: |
+          if [ ! -d ramp-kit/.git ]; then
+            git clone --depth 1 https://github.com/alex-16moro/diffuser_agent.git ramp-kit
+          fi
+          pip install -r ramp-kit/requirements.txt
+      - name: File-scoped overlay gate
+        env:
+          OVERLAY_KIT: ${{ github.workspace }}/ramp-kit
+          OVERLAY_GATE_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          OVERLAY_GATE_HEAD: HEAD
+        run: |
+          SCRIPT=".github/scripts/overlay_pr_gate.py"
+          if [ ! -f "$SCRIPT" ]; then
+            SCRIPT="ramp-kit/tools/overlay_pr_gate.py"
+          fi
+          python3 "$SCRIPT"
