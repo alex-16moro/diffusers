@@ -764,6 +764,8 @@
       title: CosineDPMSolverMultistepScheduler
     - local: api/schedulers/ddim_inverse
       title: DDIMInverseScheduler
+    - local: api/schedulers/ddim_lite
+      title: DDIMLiteScheduler
     - local: api/schedulers/ddim
       title: DDIMScheduler
     - local: api/schedulers/ddpm

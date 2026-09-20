@@ -45,6 +45,7 @@ else:
     _import_structure["scheduling_ddim"] = ["DDIMScheduler"]
     _import_structure["scheduling_ddim_cogvideox"] = ["CogVideoXDDIMScheduler"]
     _import_structure["scheduling_ddim_inverse"] = ["DDIMInverseScheduler"]
+    _import_structure["scheduling_ddim_lite"] = ["DDIMLiteScheduler"]
     _import_structure["scheduling_ddim_parallel"] = ["DDIMParallelScheduler"]
     _import_structure["scheduling_ddpm"] = ["DDPMScheduler"]
     _import_structure["scheduling_ddpm_parallel"] = ["DDPMParallelScheduler"]
@@ -130,6 +131,7 @@ if TYPE_CHECKING or DIFFUSERS_SLOW_IMPORT:
         from .scheduling_ddim import DDIMScheduler
         from .scheduling_ddim_cogvideox import CogVideoXDDIMScheduler
         from .scheduling_ddim_inverse import DDIMInverseScheduler
+        from .scheduling_ddim_lite import DDIMLiteScheduler
         from .scheduling_ddim_parallel import DDIMParallelScheduler
         from .scheduling_ddpm import DDPMScheduler
         from .scheduling_ddpm_parallel import DDPMParallelScheduler
