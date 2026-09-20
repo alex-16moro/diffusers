@@ -23,14 +23,12 @@ from diffusers.schedulers.scheduling_utils import SchedulerMixin, SchedulerOutpu
 class EulerLiteScheduler(SchedulerMixin, ConfigMixin):
     """First-order Euler ODE sampler over a linear-beta sigma schedule.
 
-    Lite subset of [`EulerDiscreteScheduler`]: epsilon prediction, leading timesteps, and a
-    terminal sigma of 0. The update is the Karras Euler step from
-    `scheduling_euler_discrete.py` (no ancestral noise, no Karras/exponential/beta sigma
-    conversions).
+    Lite subset of [`EulerDiscreteScheduler`]: epsilon prediction, leading timesteps, and a terminal sigma of 0. The
+    update is the Karras Euler step from `scheduling_euler_discrete.py` (no ancestral noise, no Karras/exponential/beta
+    sigma conversions).
 
-    This model inherits from [`SchedulerMixin`] and [`ConfigMixin`]. Check the superclass
-    documentation for the generic methods the library implements for all schedulers such as
-    loading and saving.
+    This model inherits from [`SchedulerMixin`] and [`ConfigMixin`]. Check the superclass documentation for the generic
+    methods the library implements for all schedulers such as loading and saving.
 
     Args:
         num_train_timesteps (`int`, defaults to `1000`):
@@ -60,9 +58,9 @@ class EulerLiteScheduler(SchedulerMixin, ConfigMixin):
     def set_timesteps(self, num_inference_steps: int, device: Union[str, torch.device, None] = None):
         """Set the discrete timesteps used for the denoising loop.
 
-        Leading spacing matches `EulerDiscreteScheduler` with `timestep_spacing="leading"`:
-        `t = (arange(num_inference_steps) * (num_train_timesteps // num_inference_steps))`
-        reversed. Sigmas are the training-schedule values at those indices plus a trailing 0.
+        Leading spacing matches `EulerDiscreteScheduler` with `timestep_spacing="leading"`: `t =
+        (arange(num_inference_steps) * (num_train_timesteps // num_inference_steps))` reversed. Sigmas are the
+        training-schedule values at those indices plus a trailing 0.
 
         Args:
             num_inference_steps: Number of diffusion steps used at inference.
@@ -85,12 +83,9 @@ class EulerLiteScheduler(SchedulerMixin, ConfigMixin):
     ) -> Union[SchedulerOutput, Tuple]:
         """Predict the sample at the previous timestep with a first-order Euler ODE step.
 
-        For epsilon prediction this is the update in `EulerDiscreteScheduler.step` with
-        `s_churn=0` (no stochastic churn, so `generator` is unused):
-
-            x0 = sample - sigma * epsilon
-            d = (sample - x0) / sigma
-            prev_sample = sample + d * (sigma_next - sigma)
+        For epsilon prediction this is the update in `EulerDiscreteScheduler.step` with `s_churn=0` (no stochastic
+        churn, so `generator` is unused): `x0 = sample - sigma * epsilon`, `d = (sample - x0) / sigma`, `prev_sample =
+        sample + d * (sigma_next - sigma)`.
 
         Args:
             model_output: Direct output from the learned diffusion model (epsilon).
