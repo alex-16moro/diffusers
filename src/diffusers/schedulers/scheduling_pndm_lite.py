@@ -1,7 +1,17 @@
-# TEMPLATE — the /scaffold command copies this to
-# src/diffusers/schedulers/scheduling_<snake>.py and renames the class.
-# It is convention-correct (passes the gate); the numerical method is left as a
-# TODO because that is the engineer's actual work, not something to fabricate.
+# Copyright 2026 The HuggingFace Team. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from typing import Optional, Tuple, Union
 
 import torch
@@ -10,8 +20,8 @@ from diffusers.configuration_utils import ConfigMixin, register_to_config
 from diffusers.schedulers.scheduling_utils import SchedulerMixin, SchedulerOutput
 
 
-class HeunLiteScheduler(SchedulerMixin, ConfigMixin):
-    """One-line summary of the scheduler (replace TemplateScheduler with HeunLiteScheduler)."""
+class PNDMLiteScheduler(SchedulerMixin, ConfigMixin):
+    """Discrete scheduler scaffold. Sampler math stays in `step()` as TODO(engineer)."""
 
     @register_to_config
     def __init__(
@@ -31,12 +41,16 @@ class HeunLiteScheduler(SchedulerMixin, ConfigMixin):
         """Set the discrete timesteps used for the denoising loop.
 
         Args:
-            num_inference_steps: Number of diffusion steps used at inference.
-            device: Device the timesteps should be moved to.
+            num_inference_steps (`int`):
+                Number of diffusion steps used at inference.
+            device (`str` or `torch.device`, *optional*):
+                Device the timesteps tensor should be moved to.
         """
         self.num_inference_steps = num_inference_steps
         step = self.config.num_train_timesteps // num_inference_steps
-        timesteps = (torch.arange(0, num_inference_steps) * step).round()[::-1].clone()
+        timesteps = (torch.arange(0, num_inference_steps) * step).round().long()
+        # torch.Tensor has no [::-1]; reverse with flip (see DDPM-style spacing).
+        timesteps = torch.flip(timesteps, dims=[0])
         self.timesteps = timesteps.to(device) if device is not None else timesteps
 
     def step(
@@ -50,14 +64,19 @@ class HeunLiteScheduler(SchedulerMixin, ConfigMixin):
         """Predict the sample at the previous timestep.
 
         Args:
-            model_output: Direct output from the learned diffusion model.
-            timestep: The current discrete timestep in the diffusion chain.
-            sample: A current instance of a sample created by the diffusion process.
-            generator: A torch.Generator for reproducible sampling.
-            return_dict: Whether to return a SchedulerOutput or a plain tuple.
+            model_output (`torch.Tensor`):
+                Direct output from the learned diffusion model.
+            timestep (`int`):
+                Current discrete timestep in the diffusion chain.
+            sample (`torch.Tensor`):
+                Current sample.
+            generator (`torch.Generator`, *optional*):
+                PRNG for reproducible noise. Never use a global RNG.
+            return_dict (`bool`, *optional*, defaults to `True`):
+                Whether to return a [`SchedulerOutput`] or a plain tuple.
 
         Returns:
-            SchedulerOutput or tuple with the predicted previous sample.
+            [`SchedulerOutput`] or `tuple`: Predicted previous sample.
         """
         noise = torch.randn(sample.shape, generator=generator, device=sample.device, dtype=sample.dtype)
         # TODO(engineer): replace this placeholder with the real update rule.
