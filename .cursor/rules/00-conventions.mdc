@@ -14,8 +14,9 @@ code that violates a **block** rule will fail the build.
 The first contribution is what `conventions/rules.yaml` checks. Copy the
 templates (`/scaffold`) and stop at 0 blocking findings from
 `tools/convention_check.py` on the new files. Do not add files the
-registry does not scan. Docs search (`search_docs` / `/search-docs`) is
-optional and is not a deliverable.
+registry does not scan. Ground in this registry and, on the library,
+`.ai/` plus reference source. Optional:
+`python3 tools/docs_mcp_server.py --query "..."` — not a deliverable.
 
 Do not pull in code or context from outside this repo's approved
 boundaries (see `.cursorignore`).
