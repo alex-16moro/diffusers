@@ -11,12 +11,12 @@ They mirror the project's own `.ai/` rules and are enforced by
 `tools/convention_check.py` — the same gate that runs in CI, so producing
 code that violates a **block** rule will fail the build.
 
-Use the `diffusers-docs` MCP tool (`search_docs`) to ground answers in the
-library's current docs before scaffolding. If that tool is **not** in your
-tool list (Cloud Agents skip project `.cursor/mcp.json` unless the launch
-MCP dropdown has stdio `python3 -u .cursor/mcp-diffusers-docs.py`), run
-`/search-docs <query>`, the `search-docs` skill, or
-`python3 tools/docs_mcp_server.py --query "..."` — same server.
+The first contribution is what `conventions/rules.yaml` checks. Copy the
+templates (`/scaffold`) and stop at 0 blocking findings from
+`tools/convention_check.py` on the new files. Do not add files the
+registry does not scan. Docs search (`search_docs` / `/search-docs`) is
+optional and is not a deliverable.
+
 Do not pull in code or context from outside this repo's approved
 boundaries (see `.cursorignore`).
 
@@ -34,5 +34,6 @@ boundaries (see `.cursorignore`).
 - **CUST001 — No debugging leftovers committed.** Remove breakpoint()/pdb before committing.
 
 Component-specific rules auto-attach when you open a matching file
-(e.g. a scheduler). Prefer copying an existing in-repo example with a
-`# Copied from` marker over inventing a new pattern.
+(e.g. a scheduler). Start from `/scaffold` templates, not from a
+library scheduler file. Use a `# Copied from` marker only when you
+intentionally duplicate a small helper.
