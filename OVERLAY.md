@@ -33,9 +33,12 @@ Do not copy `ramp-kit/examples/candidate_scheduler/`.
 
 `.cursor/mcp.json` ships **stdio `diffusers-docs` only** (`python3 -u
 .cursor/mcp-diffusers-docs.py`). Do not enable Hub HTTP MCP (OAuth). Cloud
-dropdown: `diffusers-docs-mcp` (PATH shim from `install-docs-mcp.sh`) or the
-same python3 command. The launcher finds `ramp-kit/tools/docs_mcp_server.py`
-from `/agent` as well as the repo root.
+dropdown: `diffusers-docs-mcp` (PATH shim from `install-docs-mcp.sh`) or
+`python3 -u .cursor/mcp-diffusers-docs.py`. Cloud `mcpServerAllowlist` must
+permit **both** `python3` (what `.cursor/mcp.json` spawns) and
+`diffusers-docs-mcp`. The launcher finds `ramp-kit/tools/docs_mcp_server.py`
+from `/agent` as well as the repo root. `start` copies the relative launcher
+into `/agent/.cursor/` so that python3 spawn works.
 
 Hub HTTP and extra servers stay in `.cursor/mcp.optional.json`.
 

@@ -3,7 +3,11 @@
     "diffusers-docs": {
       "type": "stdio",
       "command": "python3",
-      "args": ["-u", ".cursor/mcp-diffusers-docs.py"],
+      "args": [
+        "-u",
+        "-c",
+        "import os, sys; from pathlib import Path; opts = [Path('.cursor/mcp-diffusers-docs.py')]; repos = Path('/agent/repos');\nopts.extend(repos.glob('*/.cursor/mcp-diffusers-docs.py')) if repos.is_dir() else None; opts.extend(repos.glob('*/ramp-kit/.cursor/mcp-diffusers-docs.py')) if repos.is_dir() else None\nfor p in opts:\n    if p.is_file():\n        os.execv(sys.executable, [sys.executable, '-u', str(p.resolve()), '--serve'])\nsys.exit('diffusers-docs MCP: launcher not found')"
+      ],
       "env": {
         "PYTHONUNBUFFERED": "1"
       }

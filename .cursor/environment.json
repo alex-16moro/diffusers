@@ -7,6 +7,10 @@
   "mcpServerAllowlist": [
     {
       "name": "diffusers-docs",
+      "command": "python3"
+    },
+    {
+      "name": "diffusers-docs-mcp",
       "command": "diffusers-docs-mcp"
     }
   ]
