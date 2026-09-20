@@ -3,7 +3,7 @@
     "diffusers-docs": {
       "type": "stdio",
       "command": "python3",
-      "args": ["-u", "/workspace/.cursor/mcp-diffusers-docs.py"],
+      "args": ["-u", ".cursor/mcp-diffusers-docs.py"],
       "env": {
         "PYTHONUNBUFFERED": "1"
       }
