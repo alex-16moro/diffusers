@@ -49,6 +49,14 @@ class TestStructuralContract(unittest.TestCase):
         self.assertIn("EulerLiteScheduler", schedulers_init)
         self.assertIn("EulerLiteScheduler", package_init)
 
+    def test_docs_page(self):
+        root = Path(__file__).resolve().parents[2]
+        docs_page = root / "docs" / "source" / "en" / "api" / "schedulers" / "euler_lite.md"
+        toctree = (root / "docs" / "source" / "en" / "_toctree.yml").read_text()
+        self.assertTrue(docs_page.is_file())
+        self.assertIn("EulerLiteScheduler", docs_page.read_text())
+        self.assertIn("api/schedulers/euler_lite", toctree)
+
 
 class TestSignatureContract(unittest.TestCase):
     """Deeper than the gate: verify the SIGNATURES, not just method presence."""
