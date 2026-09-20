@@ -1,6 +1,6 @@
 ---
 name: search-docs
-description: Optional docs CLI for this diffusers checkout. Prefer scheduler source + the gate; MCP is opt-in.
+description: Optional docs CLI for this diffusers checkout. Prefer the gate; MCP is stdio search_docs.
 ---
 
 # Search this library's docs
@@ -9,7 +9,7 @@ description: Optional docs CLI for this diffusers checkout. Prefer scheduler sou
 python3 ramp-kit/tools/docs_mcp_server.py --query "<the question>"
 ```
 
-Cite provenance (`diffusers checkout` vs bundled snapshot). Prefer reading
-`src/diffusers/schedulers/scheduling_euler_discrete.py` and
-`scheduling_ddpm.py` first. `ramp-kit/conventions/rules.yaml` is the gate.
-`.cursor/mcp.json` is empty by default.
+Cite provenance (`diffusers checkout` vs bundled snapshot).
+`ramp-kit/conventions/rules.yaml` is the gate.
+`.cursor/mcp.json` is stdio `diffusers-docs` only (no Hub HTTP).
+Cloud dropdown: `diffusers-docs-mcp`.

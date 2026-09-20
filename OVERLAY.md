@@ -22,8 +22,13 @@ The first contribution is what `ramp-kit/conventions/rules.yaml` checks:
 Docs search and reading `scheduling_euler_discrete.py` / `scheduling_ddpm.py`
 are how the *kit* verified the YAML. They are not part of the first PR.
 
-`.cursor/mcp.json` is **empty by default** so Cloud launches do not hit Hub
-OAuth or stdio cwd failures. Opt-in servers: `.cursor/mcp.optional.json`.
+`.cursor/mcp.json` ships **stdio `diffusers-docs` only** (`python3 -u
+.cursor/mcp-diffusers-docs.py`). Do not enable Hub HTTP MCP (OAuth). Cloud
+dropdown: `diffusers-docs-mcp` (PATH shim from `install-docs-mcp.sh`) or the
+same python3 command. The launcher finds `ramp-kit/tools/docs_mcp_server.py`
+from `/agent` as well as the repo root.
+
+Hub HTTP and extra servers stay in `.cursor/mcp.optional.json`.
 
 ## Demo (Cloud Agent)
 

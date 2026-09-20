@@ -2,9 +2,13 @@
 """Launch diffusers-docs MCP from any cwd.
 
 Cloud Agent stdio cannot set `cwd` and does not expand `${workspaceFolder}`.
-This launcher walks cwd, git root, /workspace, and its own path until it finds
-`tools/docs_mcp_server.py`, then execs it. Desktop and Cloud then share one
-command: `python3 -u .cursor/mcp-diffusers-docs.py`.
+The dashboard command is often `python3 -u .cursor/mcp-diffusers-docs.py`,
+spawned from the workspace root (e.g. `/agent`), not the git repo. This
+launcher walks cwd, git root, `/agent/repos/*`, `/workspace`, and its own
+path until it finds `tools/docs_mcp_server.py`, then execs it.
+
+Desktop and Cloud share: `python3 -u .cursor/mcp-diffusers-docs.py`.
+Cloud PATH fallback after install: `diffusers-docs-mcp`.
 """
 from __future__ import annotations
 
@@ -12,6 +16,17 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+
+
+def _children(base: Path):
+    try:
+        if not base.is_dir():
+            return
+        for child in base.iterdir():
+            if child.is_dir():
+                yield child
+    except OSError:
+        return
 
 
 def _candidates():
@@ -25,7 +40,19 @@ def _candidates():
         val = os.environ.get(key)
         if val:
             out.append(Path(val))
-    out.append(Path("/workspace"))
+            out.append(Path(val) / "ramp-kit")
+    for base in (
+        Path("/agent"),
+        Path("/agent/repos"),
+        Path("/workspace"),
+        Path("/workspace/repos"),
+        here.parent / "repos",
+        cwd / "repos",
+    ):
+        out.append(base)
+        for child in _children(base):
+            out.append(child)
+            out.append(child / "ramp-kit")
     try:
         top = subprocess.check_output(
             ["git", "rev-parse", "--show-toplevel"],
@@ -34,6 +61,7 @@ def _candidates():
         ).strip()
         if top:
             out.append(Path(top))
+            out.append(Path(top) / "ramp-kit")
     except (OSError, subprocess.CalledProcessError):
         pass
     seen: set[Path] = set()
@@ -55,12 +83,12 @@ def main(argv: list[str] | None = None) -> int:
         if script.is_file():
             os.chdir(root)
             sys.argv = [str(script), "--serve", *extra]
-            # runpy would work; exec keeps stdin/stdout as the MCP pipes.
             os.execv(sys.executable, [sys.executable, "-u", str(script), "--serve", *extra])
     sys.stderr.write(
         "diffusers-docs MCP: could not find tools/docs_mcp_server.py "
-        f"(cwd={Path.cwd()}). From the repo root run: "
-        "python3 -u .cursor/mcp-diffusers-docs.py\n"
+        f"(cwd={Path.cwd()} file={Path(__file__).resolve()}). "
+        "Install the PATH shim: bash .cursor/install-docs-mcp.sh "
+        "then spawn `diffusers-docs-mcp`.\n"
     )
     return 1
 
