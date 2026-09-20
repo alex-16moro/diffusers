@@ -5,10 +5,12 @@ and adds behavioral checks when torch + diffusers are available.
 See examples/scaffolded_scheduler + tests/schedulers/test_scheduling_ddpm_lite.py
 for a filled-in example.
 """
+
 import ast
 import importlib.util
 import unittest
 from pathlib import Path
+
 
 # ---- edit these two for your scheduler -------------------------------------
 TARGET = Path(__file__).resolve().parents[2] / "src" / "diffusers" / "schedulers" / "scheduling_euler_lite.py"
@@ -69,8 +71,11 @@ class TestSignatureContract(unittest.TestCase):
         m = _method(self.node, "set_timesteps")
         self.assertIsNotNone(m, "set_timesteps missing")
         args = [a.arg for a in m.args.args]
-        self.assertIn("num_inference_steps", args,
-                      "set_timesteps must accept num_inference_steps (verified against upstream source)")
+        self.assertIn(
+            "num_inference_steps",
+            args,
+            "set_timesteps must accept num_inference_steps (verified against upstream source)",
+        )
         self.assertIn("device", args, "set_timesteps must accept device")
 
     def test_step_signature(self):
@@ -106,6 +111,7 @@ class TestBehavioralContract(unittest.TestCase):
 
     def test_output_type(self):
         import torch
+
         s = self.Scheduler()
         s.set_timesteps(10)
         sample = torch.zeros(1, 3, 8, 8)
@@ -116,6 +122,7 @@ class TestBehavioralContract(unittest.TestCase):
 
     def test_same_seed_same_output(self):
         import torch
+
         s = self.Scheduler()
         s.set_timesteps(10)
         sample = torch.zeros(1, 3, 8, 8)
@@ -126,6 +133,7 @@ class TestBehavioralContract(unittest.TestCase):
 
     def test_euler_ode_epsilon_update(self):
         import torch
+
         s = self.Scheduler()
         s.set_timesteps(10)
         sample = torch.zeros(1, 3, 8, 8)

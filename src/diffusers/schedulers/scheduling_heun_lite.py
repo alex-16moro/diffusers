@@ -59,9 +59,7 @@ class HeunLiteScheduler(SchedulerMixin, ConfigMixin):
         Returns:
             SchedulerOutput or tuple with the predicted previous sample.
         """
-        noise = torch.randn(
-            sample.shape, generator=generator, device=sample.device, dtype=sample.dtype
-        )
+        noise = torch.randn(sample.shape, generator=generator, device=sample.device, dtype=sample.dtype)
         # TODO(engineer): replace this placeholder with the real update rule.
         prev_sample = sample - model_output + 0.0 * noise
 
