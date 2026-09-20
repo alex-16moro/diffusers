@@ -1,19 +1,17 @@
-"""TEMPLATE — copy to tests/schedulers/test_scheduling_<snake>.py and set the
-two constants below. Runs with zero installs (structural + signature contract)
-and adds behavioral checks when torch + diffusers are available.
+"""Contract tests for HeunLiteScheduler.
 
-See examples/scaffolded_scheduler + tests/schedulers/test_scheduling_ddpm_lite.py
-for a filled-in example.
+Structural and signature tests run with no extra installs. Behavioral checks
+run when torch and diffusers are importable.
 """
+
 import ast
 import importlib.util
 import unittest
 from pathlib import Path
 
-# ---- edit these two for your scheduler -------------------------------------
+
 TARGET = Path(__file__).resolve().parents[2] / "src" / "diffusers" / "schedulers" / "scheduling_heun_lite.py"
 CLASS = "HeunLiteScheduler"
-# ----------------------------------------------------------------------------
 
 
 def _class_node():
@@ -53,8 +51,11 @@ class TestSignatureContract(unittest.TestCase):
         m = _method(self.node, "set_timesteps")
         self.assertIsNotNone(m, "set_timesteps missing")
         args = [a.arg for a in m.args.args]
-        self.assertIn("num_inference_steps", args,
-                      "set_timesteps must accept num_inference_steps (verified against upstream source)")
+        self.assertIn(
+            "num_inference_steps",
+            args,
+            "set_timesteps must accept num_inference_steps (verified against upstream source)",
+        )
         self.assertIn("device", args, "set_timesteps must accept device")
 
     def test_step_signature(self):
@@ -90,6 +91,7 @@ class TestBehavioralContract(unittest.TestCase):
 
     def test_output_type(self):
         import torch
+
         s = self.Scheduler()
         s.set_timesteps(10)
         sample = torch.zeros(1, 3, 8, 8)
@@ -100,6 +102,7 @@ class TestBehavioralContract(unittest.TestCase):
 
     def test_same_seed_same_output(self):
         import torch
+
         s = self.Scheduler()
         s.set_timesteps(10)
         sample = torch.zeros(1, 3, 8, 8)
