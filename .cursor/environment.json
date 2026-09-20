@@ -1,7 +1,13 @@
 {
-  "install": "if [ ! -d ramp-kit/.git ]; then git clone --depth 1 https://github.com/alex-16moro/diffuser_agent.git ramp-kit; fi && pip install -r ramp-kit/requirements.txt && bash ramp-kit/.cursor/install-docs-mcp.sh && python3 ramp-kit/tools/docs_mcp_server.py --selftest",
+  "install": "if [ ! -d ramp-kit/.git ]; then git clone --depth 1 https://github.com/alex-16moro/diffuser_agent.git ramp-kit; fi && bash ramp-kit/.cursor/cloud-install.sh",
   "start": "bash ramp-kit/.cursor/install-docs-mcp.sh",
   "repositoryDependencies": [
     "github.com/alex-16moro/diffuser_agent"
+  ],
+  "mcpServerAllowlist": [
+    {
+      "name": "diffusers-docs",
+      "command": "diffusers-docs-mcp"
+    }
   ]
 }

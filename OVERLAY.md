@@ -3,24 +3,33 @@
 This checkout is a **fork of huggingface/diffusers**. The overlay lives in a
 separate repo: [alex-16moro/diffuser_agent](https://github.com/alex-16moro/diffuser_agent).
 
-Cloud Agent install clones it to `ramp-kit/` (gitignored). Do not edit
-upstream `AGENTS.md` / `.ai/` — those stay Hugging Face's.
+Cloud Agent install clones it to `ramp-kit/` (gitignored).
+
+Root `AGENTS.md` and `.ai/` stay Hugging Face's agent guide. Do not overwrite
+them. A new engineer's agent should follow that guide **and** this overlay so
+generated code is library-CI aligned by default (`make style`, `make quality`,
+copies/dummies) plus the customer file-scoped gate.
 
 PRs from this overlay are **fork-demo only, not for upstream**. Keep them draft
-and titled `[fork demo — not for upstream]`. Overlay clearance is the customer
-gate (`ramp-kit/tools/convention_check.py` on the new file). Upstream GitHub
-Actions may go red; that is expected — we do not claim Hugging Face's CI.
+and titled `[fork demo — not for upstream]`. Do not disable inherited GitHub
+workflows. Jobs that need Hugging Face's private runners or size labels may
+still be red on this personal fork; that is repo-hosting, not a reason to skip
+`make quality`.
 
 ## Grounding (default path — no MCP)
 
-The first contribution is what `ramp-kit/conventions/rules.yaml` checks:
+The first contribution:
 
 1. Copy `ramp-kit/templates/scheduler/scheduling_TEMPLATE.py` and
-   `ramp-kit/tests/_templates/scheduler_test.py`.
-2. Run the file-scoped gate on the new scheduler file. Never `--all`.
+   `ramp-kit/tests/_templates/scheduler_test.py`. Replace every template token.
+   Keep `TODO(engineer)` in `step()`.
+2. Register the class in `schedulers/__init__.py`, `diffusers/__init__.py`, and
+   dummy objects (`python utils/check_dummies.py --fix_and_overwrite`).
+3. File-scoped overlay gate on the new file. Never `--all`.
+4. Invoke the library's own tooling until exit 0: `make style`, `make quality`,
+   `python utils/check_copies.py && python utils/check_dummies.py && python utils/check_repo.py`.
 
-Docs search and reading `scheduling_euler_discrete.py` / `scheduling_ddpm.py`
-are how the *kit* verified the YAML. They are not part of the first PR.
+Do not copy `ramp-kit/examples/candidate_scheduler/`.
 
 `.cursor/mcp.json` ships **stdio `diffusers-docs` only** (`python3 -u
 .cursor/mcp-diffusers-docs.py`). Do not enable Hub HTTP MCP (OAuth). Cloud
@@ -35,11 +44,10 @@ Hub HTTP and extra servers stay in `.cursor/mcp.optional.json`.
 1. On the **kit** first: catch-early on `examples/candidate_scheduler`, then
    `make demo-maintain` if you show maintainability.
 2. Then launch on **this fork** (`alex-16moro/diffusers`), branch `main`.
-3. Scaffold writes `src/diffusers/schedulers/scheduling_<name>.py` here
-   (HeunLite if EulerLite already exists). Gate:
-   `python3 ramp-kit/tools/convention_check.py <that file>` (never `--all`).
+3. `/scaffold scheduler <unused Name>`. Follow `.cursor/commands/scaffold.md`
+   (copied from the overlay). Register + library CI until green. Never `--all`.
 4. Open the PR **on this fork**, not on huggingface/diffusers, **draft, base
-   `main`**, those two files only.
+   `main`**, only after those library gates pass.
 
 Catch-early fixture: `ramp-kit/examples/candidate_scheduler` — do not copy it.
 
