@@ -11,7 +11,7 @@ from diffusers.schedulers.scheduling_utils import SchedulerMixin, SchedulerOutpu
 
 
 class HeunLiteScheduler(SchedulerMixin, ConfigMixin):
-    """Contract-only Heun-style scheduler scaffold (no sampler math yet)."""
+    """One-line summary of the scheduler (replace TemplateScheduler with HeunLiteScheduler)."""
 
     @register_to_config
     def __init__(
@@ -36,7 +36,7 @@ class HeunLiteScheduler(SchedulerMixin, ConfigMixin):
         """
         self.num_inference_steps = num_inference_steps
         step = self.config.num_train_timesteps // num_inference_steps
-        timesteps = (torch.arange(0, num_inference_steps) * step).round().flip(0).clone()
+        timesteps = (torch.arange(0, num_inference_steps) * step).round()[::-1].clone()
         self.timesteps = timesteps.to(device) if device is not None else timesteps
 
     def step(
