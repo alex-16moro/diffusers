@@ -1,6 +1,6 @@
 import torch
 
-from diffusers import DDPMScheduler
+from diffusers import DDPMParallelScheduler, DDPMScheduler
 
 from .test_schedulers import SchedulerCommonTest
 
@@ -220,3 +220,64 @@ class DDPMSchedulerTest(SchedulerCommonTest):
 
         assert abs(result_sum.item() - 387.9466) < 1e-2, f" expected result sum 387.9466, but get {result_sum}"
         assert abs(result_mean.item() - 0.5051) < 1e-3, f" expected result mean 0.5051, but get {result_mean}"
+
+    def test_empty_custom_timesteps_preserve_prior_schedule(self):
+        for scheduler_class in (DDPMScheduler, DDPMParallelScheduler):
+            scheduler = scheduler_class(**self.get_scheduler_config())
+            prior = [100, 87, 50, 1, 0]
+            scheduler.set_timesteps(timesteps=prior)
+            prior_timesteps = scheduler.timesteps.clone()
+            prior_custom = scheduler.custom_timesteps
+
+            with self.assertRaisesRegex(ValueError, "timesteps.*empty"):
+                scheduler.set_timesteps(timesteps=[])
+
+            self.assertEqual(scheduler.timesteps.tolist(), prior)
+            self.assertTrue(torch.equal(scheduler.timesteps, prior_timesteps))
+            self.assertEqual(scheduler.custom_timesteps, prior_custom)
+
+            with self.assertRaisesRegex(ValueError, "Can only pass one of"):
+                scheduler.set_timesteps(num_inference_steps=10, timesteps=[])
+
+            self.assertEqual(scheduler.timesteps.tolist(), prior)
+            self.assertEqual(scheduler.custom_timesteps, prior_custom)
+
+    def test_preserve_state_valid_custom_timesteps(self):
+        for scheduler_class in (DDPMScheduler, DDPMParallelScheduler):
+            scheduler = scheduler_class(**self.get_scheduler_config())
+            timesteps = [100, 87, 50, 1, 0]
+            scheduler.set_timesteps(timesteps=timesteps)
+            self.assertEqual(scheduler.timesteps.tolist(), timesteps)
+            self.assertEqual(scheduler.timesteps.device.type, "cpu")
+
+            scheduler = scheduler_class(**self.get_scheduler_config())
+            scheduler.set_timesteps(timesteps=[0])
+            self.assertEqual(scheduler.timesteps.tolist(), [0])
+            self.assertEqual(scheduler.timesteps.device.type, "cpu")
+
+    def test_argument_conflict_preserves_prior_schedule(self):
+        for scheduler_class in (DDPMScheduler, DDPMParallelScheduler):
+            scheduler = scheduler_class(**self.get_scheduler_config())
+            prior = [100, 87, 50, 1, 0]
+            scheduler.set_timesteps(timesteps=prior)
+
+            with self.assertRaisesRegex(ValueError, "Can only pass one of"):
+                scheduler.set_timesteps(num_inference_steps=len(prior), timesteps=prior)
+
+            self.assertEqual(scheduler.timesteps.tolist(), prior)
+            self.assertTrue(scheduler.custom_timesteps)
+
+    def test_count_based_schedule_survives_empty_custom_timesteps(self):
+        for scheduler_class in (DDPMScheduler, DDPMParallelScheduler):
+            scheduler = scheduler_class(**self.get_scheduler_config())
+            scheduler.set_timesteps(num_inference_steps=10)
+            expected = [900, 800, 700, 600, 500, 400, 300, 200, 100, 0]
+            self.assertEqual(scheduler.timesteps.tolist(), expected)
+            self.assertFalse(scheduler.custom_timesteps)
+
+            with self.assertRaisesRegex(ValueError, "timesteps.*empty"):
+                scheduler.set_timesteps(timesteps=[])
+
+            self.assertEqual(scheduler.timesteps.tolist(), expected)
+            self.assertFalse(scheduler.custom_timesteps)
+            self.assertEqual(scheduler.timesteps.device.type, "cpu")
