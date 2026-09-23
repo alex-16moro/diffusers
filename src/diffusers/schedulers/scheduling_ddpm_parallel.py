@@ -311,6 +311,9 @@ class DDPMParallelScheduler(SchedulerMixin, ConfigMixin):
             raise ValueError("Can only pass one of `num_inference_steps` or `custom_timesteps`.")
 
         if timesteps is not None:
+            if len(timesteps) == 0:
+                raise ValueError("`timesteps` cannot be empty.")
+
             for i in range(1, len(timesteps)):
                 if timesteps[i] >= timesteps[i - 1]:
                     raise ValueError("`custom_timesteps` must be in descending order.")
