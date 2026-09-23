@@ -1,0 +1,51 @@
+name: Ramp Kit contribution checks
+on:
+  pull_request:
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          path: candidate
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: policy
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Use the kit approved on the exact PR base commit
+        run: |
+          test -f policy/.ramp-kit/run.py || { echo 'Install and review the kit on the fork base branch first.'; exit 1; }
+          cmp policy/.ramp-kit/attachment.json candidate/.ramp-kit/attachment.json
+          cmp policy/.github/workflows/ramp-kit.yml candidate/.github/workflows/ramp-kit.yml
+          git -C candidate diff --exit-code '${{ github.event.pull_request.base.sha }}' -- setup.py pyproject.toml
+      - name: Install the approved CPU environment
+        run: bash policy/.ramp-kit/runtime/bootstrap.sh candidate
+      - name: Verify each task with the same runner used locally
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          tasks=(candidate/.ramp/*/task.json)
+          if [ ${#tasks[@]} -eq 0 ]; then
+            echo 'No task record committed. Include the prepared task and architecture assessment.' >&2
+            exit 1
+          fi
+          for task in "${tasks[@]}"; do
+            task_id=$(basename "$(dirname "$task")")
+            candidate/.ramp-venv/bin/python policy/.ramp-kit/run.py --repo candidate verify "$task_id" --level full
+            candidate/.ramp-venv/bin/python policy/.ramp-kit/run.py --repo candidate report "$task_id"
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ramp-evidence
+          path: candidate/.ramp/
+          include-hidden-files: true

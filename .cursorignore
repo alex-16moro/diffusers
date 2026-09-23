@@ -1,0 +1,10 @@
+# Context hints only: this is not filesystem or network isolation.
+.git/
+.ramp-venv/
+**/__pycache__/
+**/.pytest_cache/
+.env
+.env.*
+**/*.pem
+dist/
+build/

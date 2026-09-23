@@ -186,3 +186,12 @@ wandb
 # AI agent generated symlinks
 /.agents/skills
 /.claude/skills
+
+# Ramp Kit managed installation
+!/.cursor/
+/.cursor/*
+!/.cursor/rules/
+/.cursor/rules/*
+!/.cursor/rules/ramp-entry.mdc
+!/.cursor/rules/ramp-scheduler.mdc
+/.ramp-venv/

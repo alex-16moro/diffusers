@@ -1,0 +1,105 @@
+{
+  "name": "diffusers-ddpm-validation",
+  "base_sha": "0121a91f9d419ff7234c8a5923f82c244e6f1914",
+  "upstream": "https://github.com/huggingface/diffusers.git",
+  "sources": {
+    "src/diffusers/schedulers/scheduling_ddpm.py": "3822205d8e95938da6af85dfb9e0455c15bc37983d2d5842ee586c29bc75b74a",
+    "tests/schedulers/test_scheduler_ddpm.py": "dba4fd215d68cc7d4f100b590459d318d8acb69b2902417e7bcccd126dd748c3",
+    "tests/schedulers/test_schedulers.py": "4e41c6c4863061cc40edf14cdcfbaffa624249592d1f5b3711cca6087293dc02",
+    ".ai/AGENTS.md": "129f57223acf9e323f5f62733da25a9e1392633dd3724d64d324904cc434ef2c",
+    ".ai/references/code_style.md": "fff62d7a1c4f3d76a80490e2d227ae05d28a204ad8d20d8593cfe2870b084116",
+    ".ai/references/testing.md": "f91929a8b7b530f072368468064e8c6e205848c0a155f63ca04aa0ea02418aea",
+    ".ai/references/review-rules.md": "e08da537a8a872e0d94b1ef52d0b14a0f0fc94dcc7c32f8ae12d8546e3619a54",
+    "docs/source/en/conceptual/philosophy.md": "330ee435a7607e953afe569b46eaffb8a4d8a4a5e1119a8b49fbe3d71308649b",
+    "docs/source/en/conceptual/contribution.md": "ac422154a310522e849cb8259fb14bc6a77a8c3f05d074eafd577a665e15c153",
+    "Makefile": "17a7916543d7bd65c763d1c1c94ea9cf731448cc98d54fe85f9c2c761dcd2f33",
+    ".github/workflows/pr_tests.yml": "06cbd5c266172a97024d1034ba0ee28a0300ded119135aab7b08fad57cb1052f",
+    ".github/workflows/pr_dependency_test.yml": "1bb547389b2c45c1d727cb8f07040b1ef79c9a21bea9ab795aaf1a0dbb00fa1d",
+    "pyproject.toml": "a953e1ebce5fbaf19f7329742ca45b0f6a0b20d22613473a179dfb8ba4150db5",
+    "setup.py": "6b1e5cb8b77e6e49481b64a75820af7c343ba5cc3112828c6d5015a97bdf35fc",
+    "src/diffusers/schedulers/scheduling_ddpm_parallel.py": "1dcace2d4666d3b0ec1401aa600a47de9d77ba080d753007c8e8e781368b2b67",
+    "tests/schedulers/test_scheduler_ddpm_parallel.py": "c998f6f4976282cbffaa74221cbbcc2a48d0c076b01d3e6afa6ff8eb4df0613c",
+    "utils/check_copies.py": "4759176188340c0bd13485f70c5aee6c48320f6606d72dffe2d1967c06e4bb5a",
+    "utils/check_dummies.py": "d96b33256c239615dfc439564cee0dc976729344217fabead2dc6571575665f0",
+    "utils/check_support_list.py": "572a5a3df967a232d520306c28f66b582f69af3a5f5d8386e3c17a85390e11b1",
+    "utils/check_forward_call_docstrings.py": "6ebde06cc99b5f41d8a0a00b8fa4681f616ddde7deb25bf54bb0fdc7ee273bb5",
+    "tests/others/test_dependencies.py": "020c6c53afb2aa8bbc7a775770b688b252d5ba1664f55b1f9d7b72613f137dc9"
+  },
+  "editable_files": [
+    "src/diffusers/schedulers/scheduling_ddpm.py",
+    "src/diffusers/schedulers/scheduling_ddpm_parallel.py",
+    "tests/schedulers/test_scheduler_ddpm.py"
+  ],
+  "implementation_files": [
+    "src/diffusers/schedulers/scheduling_ddpm.py",
+    "src/diffusers/schedulers/scheduling_ddpm_parallel.py"
+  ],
+  "test_file": "tests/schedulers/test_scheduler_ddpm.py",
+  "upstream_checks": [
+    {
+      "id": "upstream-quality",
+      "command": [
+        "make",
+        "quality"
+      ]
+    },
+    {
+      "id": "copies",
+      "command": [
+        "{python}",
+        "utils/check_copies.py"
+      ]
+    },
+    {
+      "id": "dummies",
+      "command": [
+        "{python}",
+        "utils/check_dummies.py"
+      ]
+    },
+    {
+      "id": "support-list",
+      "command": [
+        "{python}",
+        "utils/check_support_list.py"
+      ]
+    },
+    {
+      "id": "forward-docstrings",
+      "command": [
+        "{python}",
+        "utils/check_forward_call_docstrings.py"
+      ]
+    },
+    {
+      "id": "dependency-table",
+      "command": [
+        "make",
+        "deps_table_check_updated"
+      ],
+      "isolated": true
+    },
+    {
+      "id": "dependencies",
+      "command": [
+        "{python}",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/others/test_dependencies.py"
+      ]
+    }
+  ],
+  "test_modules": [
+    "tests/schedulers/test_scheduler_ddpm.py",
+    "tests/schedulers/test_scheduler_ddpm_parallel.py"
+  ],
+  "symbols": {
+    "src/diffusers/schedulers/scheduling_ddpm.py": [
+      "DDPMScheduler.set_timesteps"
+    ],
+    "src/diffusers/schedulers/scheduling_ddpm_parallel.py": [
+      "DDPMParallelScheduler.set_timesteps"
+    ]
+  }
+}

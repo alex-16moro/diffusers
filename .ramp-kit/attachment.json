@@ -1,0 +1,27 @@
+{
+  "kit_sha256": "f3e7d284016b7946c8b5f48d2b7f019110efafca682ef578863f28644adbba8d",
+  "base_sha": "0121a91f9d419ff7234c8a5923f82c244e6f1914",
+  "files": {
+    ".ramp-kit/rampkit/__init__.py": "fdac7ace08b0d5f5b495a60167bf15a90395a8eeee006ec5c10a69bcd02fbc47",
+    ".ramp-kit/rampkit/__main__.py": "935a1c1166b0c1ea35a82256345000bf2c73ded718d77773bc27a71ecce28f7d",
+    ".ramp-kit/rampkit/cli.py": "11da90eb30228520d4634e62a92128dc1c4be97433a1884e6312ae6a727cfcd7",
+    ".ramp-kit/rampkit/core.py": "3ffd7f713cf3c5235f9bf3140bf2fe2e8a757f6ef90fb77ba619c47f01586d9c",
+    ".ramp-kit/rampkit/report.py": "5b0b114634d944efb00121fd35446ba82f435e3123b0abfa31d1b75aefd89b12",
+    ".ramp-kit/rampkit/reviewer_text.py": "59dc203bae4b1c1a31fe01061b1c2b35088ffca8175f5da697ba773242dfc056",
+    ".ramp-kit/profiles/diffusers.json": "b46085a3a8cb4e16e82ec485e3e79766c9f8f122bb2421cb7ca1879983f16273",
+    ".ramp-kit/recipes/scheduler-input-validation.md": "519d067abfd18d1da37b7c3e51acdc72a1322687d1cd460f8e122fc9075329a3",
+    ".ramp-kit/templates/cursorignore.txt": "b2eac3c1abfeb8a5fe27b4e69891c521886c40401fa277c321648e409f9fb935",
+    ".ramp-kit/templates/fork-ci.yml": "6bd68b2b40fec59196efa24eeb5ed3e5169f88793c17f679a61c02e3625689a4",
+    ".ramp-kit/examples/empty-timesteps.json": "34ae0219267c9c666e70d490f4eea6ce1a1424eb3fc45febe6bd014d268e8a91",
+    ".ramp-kit/runtime/bootstrap.sh": "692e79795d7cc6a62d41d3a81ec15a2f0717e9efc03dd51752b6f0f6fa12a52b",
+    ".ramp-kit/runtime/requirements.txt": "495147f1227a6020745996e44939328a90e58040b21f8559265aad9540240519",
+    ".ramp-kit/cursor/ramp-entry.mdc": "ed6b251ed2ad6d914800e527dffa6f9b74a6f1fc1c637b90971fb571939b6bfc",
+    ".ramp-kit/cursor/ramp-scheduler.mdc": "f1e75910ac285401d94f4b051587812b27d21fd8a5aea233b1c91d6ef6baf0c6",
+    ".ramp-kit/run.py": "976edb76613778bcfbaaef518db90596c0844c59362a2d4709d6a4e5c9ed9da2",
+    ".cursor/rules/ramp-entry.mdc": "ed6b251ed2ad6d914800e527dffa6f9b74a6f1fc1c637b90971fb571939b6bfc",
+    ".cursor/rules/ramp-scheduler.mdc": "f1e75910ac285401d94f4b051587812b27d21fd8a5aea233b1c91d6ef6baf0c6",
+    ".github/workflows/ramp-kit.yml": "6bd68b2b40fec59196efa24eeb5ed3e5169f88793c17f679a61c02e3625689a4",
+    ".cursorignore": "b2eac3c1abfeb8a5fe27b4e69891c521886c40401fa277c321648e409f9fb935",
+    ".gitignore": "af9338d47365984c705f19bdd99a400c8845ee5b60c1d8aa43809027441cfc04"
+  }
+}

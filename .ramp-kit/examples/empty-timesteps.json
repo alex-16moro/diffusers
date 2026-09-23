@@ -1,0 +1,50 @@
+{
+  "id": "empty-timesteps",
+  "title": "Reject empty custom timesteps with a clear error",
+  "request": "As a library consumer, I want an empty custom timestep list to produce a clear ValueError while valid input and existing argument rules remain unchanged.",
+  "proposed_approach": "Consider replacing an empty list with [999]; evaluate this suggestion against library conventions before implementing.",
+  "recipe": "scheduler-input-validation",
+  "editable_files": [
+    "src/diffusers/schedulers/scheduling_ddpm.py",
+    "src/diffusers/schedulers/scheduling_ddpm_parallel.py",
+    "tests/schedulers/test_scheduler_ddpm.py"
+  ],
+  "regression_test": "tests/schedulers/test_scheduler_ddpm.py::DDPMSchedulerTest::test_empty_custom_timesteps",
+  "baseline_error": "IndexError",
+  "criteria": [
+    {
+      "id": "AC1",
+      "text": "Both DDPM implementations reject empty custom timesteps with a useful ValueError; argument-conflict errors retain precedence.",
+      "tests": [
+        "tests/schedulers/test_scheduler_ddpm.py::DDPMSchedulerTest::test_empty_custom_timesteps"
+      ]
+    },
+    {
+      "id": "AC2",
+      "text": "Normal and single-element custom timesteps retain their values and CPU device.",
+      "tests": [
+        "tests/schedulers/test_scheduler_ddpm.py::DDPMSchedulerTest::test_custom_timesteps_validation_preserves_valid_inputs"
+      ]
+    },
+    {
+      "id": "AC3",
+      "text": "Passing both timestep arguments still raises the existing error.",
+      "tests": [
+        "tests/schedulers/test_scheduler_ddpm.py::DDPMSchedulerTest::test_custom_timesteps_passing_both_num_inference_steps_and_timesteps"
+      ]
+    },
+    {
+      "id": "AC4",
+      "text": "Existing count-based inference timesteps still work.",
+      "tests": [
+        "tests/schedulers/test_scheduler_ddpm.py::DDPMSchedulerTest::test_count_based_inference_timesteps_unchanged"
+      ]
+    }
+  ],
+  "exclusions": [
+    "No scheduler numerical-update changes",
+    "No new exports or dependencies",
+    "No automatic replacement of invalid input",
+    "No remote publication or deployment"
+  ]
+}
