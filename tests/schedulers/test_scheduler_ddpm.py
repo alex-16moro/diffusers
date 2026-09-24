@@ -1,6 +1,6 @@
 import torch
 
-from diffusers import DDPMScheduler
+from diffusers import DDPMParallelScheduler, DDPMScheduler
 
 from .test_schedulers import SchedulerCommonTest
 
@@ -189,6 +189,37 @@ class DDPMSchedulerTest(SchedulerCommonTest):
             msg="`timesteps` must start before `self.config.train_timesteps`: {scheduler.config.num_train_timesteps}}",
         ):
             scheduler.set_timesteps(timesteps=timesteps)
+
+    def test_set_timesteps_empty_list_raises_value_error(self):
+        for scheduler_class in (DDPMScheduler, DDPMParallelScheduler):
+            scheduler = scheduler_class(**self.get_scheduler_config())
+            with self.assertRaisesRegex(
+                ValueError, "Can only pass one of `num_inference_steps` or `custom_timesteps`."
+            ):
+                scheduler.set_timesteps(num_inference_steps=4, timesteps=[])
+            with self.assertRaisesRegex(ValueError, r"`timesteps` cannot be empty"):
+                scheduler.set_timesteps(timesteps=[])
+
+    def test_set_timesteps_keeps_nonempty_custom_lists(self):
+        scheduler_config = self.get_scheduler_config()
+        custom = [100, 87, 50, 1, 0]
+        scheduler = self.scheduler_classes[0](**scheduler_config)
+        scheduler.set_timesteps(timesteps=custom)
+        self.assertEqual(scheduler.timesteps.tolist(), custom)
+        self.assertEqual(scheduler.timesteps.device.type, "cpu")
+
+        scheduler = self.scheduler_classes[0](**scheduler_config)
+        scheduler.set_timesteps(timesteps=[0])
+        self.assertEqual(scheduler.timesteps.tolist(), [0])
+        self.assertEqual(scheduler.timesteps.device.type, "cpu")
+
+    def test_set_timesteps_num_inference_steps_still_works(self):
+        scheduler = self.scheduler_classes[0](**self.get_scheduler_config())
+        scheduler.set_timesteps(num_inference_steps=10)
+        self.assertEqual(len(scheduler.timesteps), 10)
+        timesteps = scheduler.timesteps.tolist()
+        self.assertEqual(timesteps, sorted(timesteps, reverse=True))
+        self.assertFalse(scheduler.custom_timesteps)
 
     def test_full_loop_with_noise(self):
         scheduler_class = self.scheduler_classes[0]
