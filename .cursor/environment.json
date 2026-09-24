@@ -1,0 +1,4 @@
+{
+  "install": "bash .cursor/ramp-cloud-setup.sh install",
+  "start": "bash .cursor/ramp-cloud-setup.sh start"
+}

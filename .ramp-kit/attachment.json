@@ -22,6 +22,8 @@
     ".cursor/rules/ramp-scheduler.mdc": "f1e75910ac285401d94f4b051587812b27d21fd8a5aea233b1c91d6ef6baf0c6",
     ".github/workflows/ramp-kit.yml": "6bd68b2b40fec59196efa24eeb5ed3e5169f88793c17f679a61c02e3625689a4",
     ".cursorignore": "b2eac3c1abfeb8a5fe27b4e69891c521886c40401fa277c321648e409f9fb935",
-    ".gitignore": "af9338d47365984c705f19bdd99a400c8845ee5b60c1d8aa43809027441cfc04"
+    ".gitignore": "af9338d47365984c705f19bdd99a400c8845ee5b60c1d8aa43809027441cfc04",
+    ".cursor/environment.json": "8980fc838e76c1df6ac1c2aa4868ae53faca7c6d70cc7173b20610a182e8f2f9",
+    ".cursor/ramp-cloud-setup.sh": "77317cfbc7a03add944183789b43fe85dc372e18550514d9ad70094a6f6ba65b"
   }
 }
