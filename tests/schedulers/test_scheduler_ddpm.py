@@ -1,6 +1,6 @@
 import torch
 
-from diffusers import DDPMScheduler
+from diffusers import DDPMParallelScheduler, DDPMScheduler
 
 from .test_schedulers import SchedulerCommonTest
 
@@ -155,6 +155,31 @@ class DDPMSchedulerTest(SchedulerCommonTest):
             prev_t = prev_t.item()
 
             self.assertEqual(prev_t, expected_prev_t)
+
+    def test_empty_custom_timesteps(self):
+        for scheduler_class in (DDPMScheduler, DDPMParallelScheduler):
+            scheduler = scheduler_class(**self.get_scheduler_config())
+            with self.assertRaisesRegex(ValueError, "timesteps.*empty"):
+                scheduler.set_timesteps(timesteps=[])
+            with self.assertRaisesRegex(ValueError, "Can only pass one"):
+                scheduler.set_timesteps(num_inference_steps=10, timesteps=[])
+
+    def test_custom_timesteps_validation_preserves_valid_inputs(self):
+        for scheduler_class in (DDPMScheduler, DDPMParallelScheduler):
+            scheduler = scheduler_class(**self.get_scheduler_config())
+            for timesteps in ([100, 87, 1, 0], [999], [0]):
+                scheduler.set_timesteps(timesteps=timesteps, device="cpu")
+                self.assertEqual(scheduler.timesteps.tolist(), timesteps)
+                self.assertEqual(scheduler.timesteps.device.type, "cpu")
+                self.assertEqual(scheduler.timesteps.dtype, torch.int64)
+
+    def test_count_based_inference_timesteps_unchanged(self):
+        for scheduler_class in (DDPMScheduler, DDPMParallelScheduler):
+            scheduler = scheduler_class(**self.get_scheduler_config())
+            scheduler.set_timesteps(num_inference_steps=4, device="cpu")
+            self.assertEqual(scheduler.timesteps.tolist(), [750, 500, 250, 0])
+            self.assertEqual(scheduler.num_inference_steps, 4)
+            self.assertFalse(scheduler.custom_timesteps)
 
     def test_custom_timesteps_increasing_order(self):
         scheduler_class = self.scheduler_classes[0]
