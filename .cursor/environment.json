@@ -1,6 +1,4 @@
 {
-  "install": "if [ ! -d ramp-kit/.git ]; then git clone --depth 1 https://github.com/alex-16moro/diffuser_agent.git ramp-kit; fi && bash ramp-kit/.cursor/cloud-install.sh",
-  "repositoryDependencies": [
-    "github.com/alex-16moro/diffuser_agent"
-  ]
+  "install": "bash .cursor/ramp-cloud-setup.sh install",
+  "start": "bash .cursor/ramp-cloud-setup.sh start"
 }
