@@ -165,10 +165,37 @@ def context(repo: Path, relative: str, symbol: str | None = None) -> dict:
     }
 
 
+def require_pinned_base(repo: Path, base: str):
+    """Explain a checkout that is not built on the profile's pinned commit."""
+    guidance = (
+        "Clone the fork's ramp-base branch with full history (not --depth 1), "
+        "or ask the platform owner to re-pin the profile. Do not attach the kit to newer main "
+        "or to a branch carrying an earlier overlay."
+    )
+    present = subprocess.run(
+        ["git", "-C", str(repo), "cat-file", "-e", f"{base}^{{commit}}"], capture_output=True
+    )
+    if present.returncode:
+        raise RampError(f"WRONG_BASE: pinned commit {base[:12]} is not present in this checkout. {guidance}")
+    result = subprocess.run(
+        ["git", "-C", str(repo), "merge-base", "--is-ancestor", base, "HEAD"], capture_output=True
+    )
+    if result.returncode == 1:
+        fork_point = git(repo, "merge-base", base, "HEAD").decode().strip()
+        shared = f"it shares history only up to {fork_point[:12]}" if fork_point else "it shares no history"
+        raise RampError(
+            f"WRONG_BASE: this checkout is not built on pinned commit {base[:12]} ({shared}). {guidance}"
+        )
+    if result.returncode:
+        raise RampError(
+            f"git merge-base --is-ancestor failed: {result.stderr.decode(errors='replace').strip()}"
+        )
+
+
 def doctor(repo: Path, dependencies: bool = True) -> dict:
     prof = profile()
     failures = []
-    git(repo, "merge-base", "--is-ancestor", prof["base_sha"], "HEAD")
+    require_pinned_base(repo, prof["base_sha"])
     for relative in prof["editable_files"]:
         if relative not in prof["sources"]:
             failures.append(f"Edit path has no approved source: {relative}")
@@ -265,16 +292,36 @@ def prepare(repo: Path, spec: Path) -> dict:
     }
 
 
+def validate_assessment(repo: Path, task: dict, record: dict):
+    if not isinstance(record, dict):
+        raise RampError("Architecture assessment must be an object.")
+    if record.get("decision") not in {"COMPATIBLE", "REVISE", "NEEDS_MAINTAINER"}:
+        raise RampError("Architecture assessment needs a supported decision.")
+    if record.get("task_sha256") != digest(canonical(task)):
+        raise RampError("Architecture assessment does not match the current task.")
+    rationale, sources = record.get("rationale"), record.get("sources")
+    if (
+        not isinstance(rationale, str)
+        or len(rationale.strip()) < 30
+        or not isinstance(sources, list)
+        or not sources
+        or any(not isinstance(source, str) or not source.strip() for source in sources)
+    ):
+        raise RampError("Architecture assessment requires a substantive rationale and source references.")
+    for reference in sources:
+        try:
+            context(repo, reference)
+        except (OSError, UnicodeError) as exc:
+            raise RampError(f"Cannot read assessment source {reference}: {exc}") from exc
+    alternative = record.get("alternative", "")
+    if not isinstance(alternative, str) or (record["decision"] != "COMPATIBLE" and not alternative.strip()):
+        raise RampError("Pushback must include an alternative or the maintainer decision needed.")
+
+
 def assess(
     repo: Path, task_id: str, decision: str, rationale: str, sources: list[str], alternative: str
 ) -> dict:
     task = read_task(repo, task_id)
-    if len(rationale.strip()) < 30 or not sources:
-        raise RampError("Architecture assessment requires a substantive rationale and source references.")
-    for reference in sources:
-        context(repo, reference)
-    if decision != "COMPATIBLE" and not alternative.strip():
-        raise RampError("Pushback must include an alternative or the maintainer decision needed.")
     record = {
         "decision": decision,
         "rationale": rationale,
@@ -283,6 +330,7 @@ def assess(
         "task_sha256": digest(canonical(task)),
         "kind": "agent_assessment_not_human_approval",
     }
+    validate_assessment(repo, task, record)
     directory = task_dir(repo, task_id)
     history = (
         load(directory / "architecture-history.json")
@@ -740,10 +788,18 @@ def verify(repo: Path, task_id: str, level: str, phase: str) -> dict:
         raise RampError("; ".join(preflight["findings"]))
     review = load(directory / "architecture.json") if (directory / "architecture.json").exists() else {}
     findings = scope_findings(repo, task) + diagnostic(repo, task) + assertion_findings(repo, task)
-    if review.get("decision") != "COMPATIBLE" or review.get("task_sha256") != digest(canonical(task)):
-        findings.append(
-            {"rule": "DESIGN", "message": "Current task needs a compatible, cited architecture assessment."}
-        )
+    try:
+        if not (directory / "architecture.json").exists():
+            raise RampError(
+                f"No architecture assessment recorded for {task_id}; run assess {task_id} "
+                "--decision COMPATIBLE --rationale <source-grounded-rationale> --source <approved-path> "
+                "before verifying. Assess the proposal before choosing a decision."
+            )
+        validate_assessment(repo, task, review)
+        if review["decision"] != "COMPATIBLE":
+            raise RampError("Current task needs a compatible architecture assessment.")
+    except RampError as exc:
+        findings.append({"rule": "DESIGN", "message": str(exc)})
     before = fingerprint(repo, task)
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     logs = directory / "runs" / run_id
@@ -876,7 +932,7 @@ def readiness(repo: Path, task: dict) -> dict:
     candidate = load(directory / "candidate.json") if (directory / "candidate.json").exists() else None
     baseline = load(directory / "baseline.json") if (directory / "baseline.json").exists() else None
     replay = load(directory / "replay.json") if (directory / "replay.json").exists() else None
-    if candidate is None:
+    if not (directory / "candidate.json").exists():
         return {
             "status": "NOT_RUN",
             "reason": "Run verification.",
@@ -884,12 +940,23 @@ def readiness(repo: Path, task: dict) -> dict:
             "baseline": baseline,
             "replay": replay,
         }
-    if candidate["fingerprint"] != fingerprint(repo, task):
+    if (
+        not isinstance(candidate, dict)
+        or not isinstance(candidate.get("fingerprint"), str)
+        or candidate.get("status") not in ("PASS", "FAIL", "ERROR", "INCOMPLETE")
+    ):
+        status, reason = (
+            "INCOMPLETE",
+            "Malformed candidate record: expected fingerprint and status; rerun verify.",
+        )
+    elif candidate["fingerprint"] != fingerprint(repo, task):
         status, reason = "STALE", "Code, policy, requirements or assessment changed; rerun verification."
+    elif candidate.get("level") not in ("fast", "full"):
+        status, reason = "INCOMPLETE", "Malformed candidate level; rerun verify."
     elif candidate["status"] != "PASS":
         status, reason = candidate["status"], "Resolve failed, skipped or unavailable checks."
     elif not any(
-        e
+        isinstance(e, dict)
         and e.get("status") == "EXPECTED_FAILURE"
         and e.get("task_sha256") == digest(canonical(task))
         and e.get("test_sha256") == digest(safe_path(repo, profile()["test_file"]).read_bytes())
@@ -901,10 +968,8 @@ def readiness(repo: Path, task: dict) -> dict:
         )
     elif candidate["level"] != "full":
         status, reason = "FAST_CHECKS_PASSED", "Run full verification before calling the PR clean."
-    elif not any(c["id"] == "test-strength" and c["status"] == "PASS" for c in candidate.get("checks", [])):
-        status, reason = "INCOMPLETE", "Full verification must include the disposable fix-removal replay."
-    elif set(required_checks()) != {c["id"] for c in candidate.get("checks", [])}:
-        status, reason = "INCOMPLETE", "Executed checks do not match the required profile checks."
+    elif failure := successful_checks_failure(candidate):
+        status, reason = "INCOMPLETE", failure
     else:
         status, reason = (
             "READY_FOR_HUMAN_REVIEW",
@@ -917,3 +982,41 @@ def readiness(repo: Path, task: dict) -> dict:
         "baseline": baseline,
         "replay": replay,
     }
+
+
+def successful_checks_failure(candidate: dict) -> str | None:
+    """Name the evidence that needs repair; a valid full success returns no failure."""
+    checks = candidate.get("checks")
+    if not isinstance(checks, list) or any(not isinstance(check, dict) for check in checks):
+        return "Malformed checks: expected a list of check records; rerun full verification."
+    ids = [check.get("id") for check in checks]
+    if any(not isinstance(check_id, str) for check_id in ids):
+        return "Malformed check IDs: each check needs a string ID; rerun full verification."
+    duplicates = sorted({check_id for check_id in ids if ids.count(check_id) > 1})
+    if duplicates:
+        return "Duplicate check IDs: " + ", ".join(duplicates) + "; rerun full verification."
+    required = required_checks()
+    missing, unexpected = sorted(set(required) - set(ids)), sorted(set(ids) - set(required))
+    if missing:
+        return "Missing required checks: " + ", ".join(missing) + "; run full verification."
+    if unexpected:
+        return "Unexpected check IDs: " + ", ".join(unexpected) + "; rerun full verification."
+    failed = [
+        f"{check['id']}={check.get('status', 'MISSING')}" for check in checks if check.get("status") != "PASS"
+    ]
+    if failed:
+        return "Required checks did not pass: " + ", ".join(failed) + "; inspect their logs and rerun."
+    if "required_checks" not in candidate:
+        return "Missing required_checks in candidate record; rerun full verification."
+    if candidate["required_checks"] != required:
+        return "required_checks mismatch with current policy; rerun full verification."
+    if "counts" not in candidate:
+        return "Missing counts in candidate record; rerun full verification."
+    expected = {
+        state: len(checks) if state == "PASS" else 0
+        for state in ("PASS", "FAIL", "ERROR", "SKIPPED", "NOT_RUN")
+    }
+    expected["checks"] = len(checks)
+    if candidate["counts"] != expected:
+        return "counts mismatch with executed check results; rerun full verification."
+    return None

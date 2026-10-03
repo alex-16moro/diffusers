@@ -194,4 +194,6 @@ wandb
 /.cursor/rules/*
 !/.cursor/rules/ramp-entry.mdc
 !/.cursor/rules/ramp-scheduler.mdc
+!/.cursor/environment.json
+!/.cursor/ramp-cloud-setup.sh
 /.ramp-venv/

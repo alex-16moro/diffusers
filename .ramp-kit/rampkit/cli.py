@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -11,7 +12,9 @@ from . import core
 from .report import render
 
 
-def onboard(source: Path, destination: Path) -> dict:
+def onboard(
+    source: Path, destination: Path, publish_repo: str | None = None, publish_base: str | None = None
+) -> dict:
     """Platform-owner preparation of the pinned ramp-base installation checkout."""
     destination = destination.resolve()
     if destination.exists():
@@ -41,7 +44,7 @@ def onboard(source: Path, destination: Path) -> dict:
     # This is a new clone with no user edits; the source may already use this branch name.
     core.git(destination, "checkout", "-B", "ramp-base", core.profile()["base_sha"])
     core.git(destination, "remote", "set-url", "origin", core.profile()["upstream"])
-    installed = attach(destination)
+    installed = attach(destination, publish_repo, publish_base)
     return {
         "status": "ONBOARDING_READY",
         "checkout": str(destination),
@@ -50,8 +53,29 @@ def onboard(source: Path, destination: Path) -> dict:
     }
 
 
-def attach(repo: Path) -> dict:
+def publication_target(repository: str | None, base_branch: str | None) -> dict | None:
+    """Validate the owner-named fork target that the entry rule allows publishing to."""
+    if repository is None and base_branch is None:
+        return None
+    if not repository or not base_branch:
+        raise core.RampError("Name both --publish-repo OWNER/NAME and --publish-base BRANCH, or neither.")
+    if not re.fullmatch(r"[A-Za-z0-9-]+/[A-Za-z0-9._-]+", repository):
+        raise core.RampError(f"Publication repository must look like OWNER/NAME: {repository}")
+    if not re.fullmatch(r"[A-Za-z0-9._/-]+", base_branch) or ".." in base_branch:
+        raise core.RampError(f"Publication base branch is not a valid branch name: {base_branch}")
+    upstream = re.sub(r"(\.git)?/?$", "", str(core.profile().get("upstream", ""))).lower()
+    if upstream.endswith("/" + repository.lower()):
+        raise core.RampError("The publication target must be the team's fork, not the upstream project.")
+    return {
+        "repository": repository,
+        "base_branch": base_branch,
+        "approval": "Publish only after a human approves the exact wording.",
+    }
+
+
+def attach(repo: Path, publish_repo: str | None = None, publish_base: str | None = None) -> dict:
     root = core.kit_root()
+    publication_record = publication_target(publish_repo, publish_base)
     check = core.doctor(repo, dependencies=False)
     if check["status"] != "PASS":
         raise core.RampError("; ".join(check["findings"]))
@@ -77,12 +101,20 @@ def attach(repo: Path) -> dict:
         mapping[f".cursor/rules/{name}"] = root / "cursor" / name
     mapping[".github/workflows/ramp-kit.yml"] = root / "templates/fork-ci.yml"
     mapping[".cursorignore"] = root / "templates/cursorignore.txt"
+    # Cursor cloud agents run these install/start steps before the agent starts.
+    mapping[".cursor/environment.json"] = root / "templates/cursor-environment.json"
+    mapping[".cursor/ramp-cloud-setup.sh"] = root / "templates/ramp-cloud-setup.sh"
     # All conflict checks happen before writes; existing instruction files are never touched.
     ignore = core.safe_path(repo, ".gitignore")
     old_ignore = ignore.read_text() if ignore.exists() else ""
-    for relative in mapping:
-        if core.safe_path(repo, relative).exists():
-            raise core.RampError(f"Attachment would overwrite {relative}; choose a clean checkout.")
+    generated = [".ramp-kit/publication.json"] if publication_record else []
+    conflicts = [relative for relative in [*mapping, *generated] if core.safe_path(repo, relative).exists()]
+    if conflicts:
+        raise core.RampError(
+            f"ATTACH_CONFLICT: {', '.join(conflicts)} already exist, probably from another kit or overlay. "
+            "Nothing was changed. Install on a new ramp-base branch created at the pinned commit "
+            "(RELEASE.md); do not merge or overwrite the other installation."
+        )
     for relative, source in mapping.items():
         target = core.safe_path(repo, relative)
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -93,9 +125,14 @@ def attach(repo: Path) -> dict:
         old_ignore.rstrip("\n") + "\n\n# Ramp Kit managed installation\n"
         "!/.cursor/\n/.cursor/*\n!/.cursor/rules/\n/.cursor/rules/*\n"
         "!/.cursor/rules/ramp-entry.mdc\n!/.cursor/rules/ramp-scheduler.mdc\n"
+        "!/.cursor/environment.json\n!/.cursor/ramp-cloud-setup.sh\n"
         "/.ramp-venv/\n"
     )
     mapping[".gitignore"] = ignore
+    if publication_record:
+        publication = core.safe_path(repo, ".ramp-kit/publication.json")
+        core.write(publication, publication_record)
+        mapping[".ramp-kit/publication.json"] = publication
     manifest = {
         "kit_sha256": core.kit_hash(root),
         "base_sha": core.profile()["base_sha"],
@@ -114,10 +151,14 @@ def parser():
     p = argparse.ArgumentParser(description="Agent-facing first-contribution workflow; all results are JSON.")
     p.add_argument("--repo", type=Path, default=Path.cwd())
     sub = p.add_subparsers(dest="command", required=True)
-    sub.add_parser("attach")
+    q = sub.add_parser("attach")
+    q.add_argument("--publish-repo", help="Fork the agent may publish to after approval, as OWNER/NAME.")
+    q.add_argument("--publish-base", help="Base branch for pull requests on that fork.")
     sub.add_parser("doctor")
     q = sub.add_parser("onboard")
     q.add_argument("--dest", type=Path, required=True)
+    q.add_argument("--publish-repo", help="Fork the agent may publish to after approval, as OWNER/NAME.")
+    q.add_argument("--publish-base", help="Base branch for pull requests on that fork.")
     q = sub.add_parser("context")
     q.add_argument("path")
     q.add_argument("--symbol")
@@ -143,9 +184,9 @@ def main(argv=None) -> int:
     repo = args.repo.resolve()
     try:
         if args.command == "attach":
-            result = attach(repo)
+            result = attach(repo, args.publish_repo, args.publish_base)
         elif args.command == "onboard":
-            result = onboard(repo, args.dest)
+            result = onboard(repo, args.dest, args.publish_repo, args.publish_base)
         elif args.command == "doctor":
             result = core.doctor(repo)
         elif args.command == "context":
