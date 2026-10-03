@@ -1,0 +1,14 @@
+[
+  {
+    "decision": "COMPATIBLE",
+    "rationale": "FIXTURE: reject an explicitly empty custom schedule with a clear error at its owning API; preserve valid input and mutual-exclusion precedence.",
+    "sources": [
+      ".ai/references/code_style.md",
+      "docs/source/en/conceptual/philosophy.md",
+      "src/diffusers/schedulers/scheduling_ddpm.py"
+    ],
+    "alternative": "",
+    "task_sha256": "654bb9fee8292411edd697f401ec024eb476e9ead6a67ab00c6dbb0818afb746",
+    "kind": "agent_assessment_not_human_approval"
+  }
+]
