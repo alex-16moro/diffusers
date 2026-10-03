@@ -43,6 +43,15 @@ jobs:
             candidate/.ramp-venv/bin/python policy/.ramp-kit/run.py --repo candidate verify "$task_id" --level full
             candidate/.ramp-venv/bin/python policy/.ramp-kit/run.py --repo candidate report "$task_id"
           done
+      - name: Record which revisions were verified
+        if: always()
+        env:
+          RAMP_PR_NUMBER: ${{ github.event.pull_request.number }}
+          RAMP_PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          RAMP_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          test -f policy/.ramp-kit/runtime/ci_provenance.py || { echo 'The base installation has no provenance recorder; upgrade the kit on the base branch.' >&2; exit 1; }
+          python policy/.ramp-kit/runtime/ci_provenance.py --policy policy --candidate candidate --output candidate/.ramp/ci-provenance.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:

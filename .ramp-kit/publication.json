@@ -1,0 +1,5 @@
+{
+  "repository": "alex-16moro/diffusers",
+  "base_branch": "ramp-demo",
+  "approval": "Publish only after a human approves the exact wording."
+}

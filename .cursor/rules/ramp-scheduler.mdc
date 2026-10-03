@@ -6,9 +6,9 @@ alwaysApply: false
 
 Read `.ramp-kit/recipes/scheduler-input-validation.md` and the actual source before coding.
 - Schedulers are self-contained; keep input checks near the public API owning the input. Do not add a generic validation service or a dependency on pipeline internals for a local check.
-- `.ai/references/code_style.md` explicitly prefers clear errors over guessing intent and silently correcting unsupported input. Use this as evidence when pushing back on an invented default for an empty list.
+- `.ai/references/code_style.md` and `docs/source/en/conceptual/philosophy.md` describe how the library treats unsupported input. Read them and cite what they actually say when judging a proposed approach; do not assume the answer.
 - Preserve the existing mutually exclusive argument contract and valid timestep behaviour. Do not modify numerical updates for an input-validation task.
-- The DDPM parallel scheduler copies this method. Use the upstream copy tool to propagate it and inspect the diff; run both affected scheduler test modules.
+- The DDPM parallel scheduler copies this method. Use the upstream copy tool with the prepared environment active (see the recipe) to propagate it, then inspect the diff; run both affected scheduler test modules.
 - The pinned philosophy document's `set_num_inference_steps` wording conflicts with current source. Use the real `set_timesteps` method; mention the conflict rather than copying a stale API.
 - Existing DDPM tests use `SchedulerCommonTest`/unittest. The pinned validation tests use `assertRaises(ValueError, msg=...)`; `msg` is a failure message and does not match exception text. Use `assertRaisesRegex` for a new error-text assertion; do not claim the existing tests already do so.
 - A test that errors on import does not reproduce the requested bug. A skipped required test is incomplete evidence.
