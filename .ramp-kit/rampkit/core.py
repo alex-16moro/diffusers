@@ -60,7 +60,7 @@ def safe_path(root: Path, relative: str) -> Path:
 
 
 def git(repo: Path, *args: str) -> bytes:
-    result = subprocess.run(["git", "-C", str(repo), *args], capture_output=True)
+    result = subprocess.run(["git", "-C", str(repo), *args], capture_output=True, env=runtime_env(repo))
     if result.returncode:
         raise RampError(f"git {' '.join(args)} failed: {result.stderr.decode(errors='replace').strip()}")
     return result.stdout
@@ -101,9 +101,22 @@ def task_dir(repo: Path, task_id: str) -> Path:
 def validate_task(task: dict, prof: dict):
     if not isinstance(task, dict):
         raise RampError("Task must be a JSON object.")
-    required = ("id", "title", "request", "recipe", "editable_files", "criteria", "regression_test")
+    required = (
+        "id",
+        "title",
+        "request",
+        "recipe",
+        "editable_files",
+        "criteria",
+        "regression_test",
+        "baseline_error",
+    )
     if any(not task.get(key) for key in required):
         raise RampError(f"Task requires nonempty fields: {', '.join(required)}")
+    if not isinstance(task["baseline_error"], str) or not re.fullmatch(
+        r"[A-Za-z_][A-Za-z0-9_]*", task["baseline_error"]
+    ):
+        raise RampError("baseline_error must name the observed implementation exception class.")
     task_dir(Path.cwd(), task["id"])
     if task.get("base_sha", prof["base_sha"]) != prof["base_sha"]:
         raise RampError("Task baseline differs from the installed profile; refresh the task with its owner.")
@@ -156,6 +169,15 @@ def context(repo: Path, relative: str, symbol: str | None = None) -> dict:
                 raise RampError(f"Missing symbol {symbol} in {relative}; refresh the profile.")
             nodes = getattr(found, "body", [])
         start, end = found.lineno, found.end_lineno
+        decorators = getattr(found, "decorator_list", [])
+        if decorators:
+            start = min(start, *(node.lineno for node in decorators))
+        # AST line ranges omit the upstream copy relationship immediately above a symbol.
+        preceding = start - 2
+        while preceding >= 0 and (not lines[preceding].strip() or lines[preceding].lstrip().startswith("#")):
+            if lines[preceding].lstrip().startswith("# Copied from "):
+                start = preceding + 1
+            preceding -= 1
     return {
         "path": relative,
         "start_line": start,
@@ -165,10 +187,41 @@ def context(repo: Path, relative: str, symbol: str | None = None) -> dict:
     }
 
 
+def require_pinned_base(repo: Path, base: str):
+    """Explain a checkout that is not built on the profile's pinned commit."""
+    guidance = (
+        "Clone the fork's ramp-base branch with full history (not --depth 1), "
+        "or ask the platform owner to re-pin the profile. Do not attach the kit to newer main "
+        "or to a branch carrying an earlier overlay."
+    )
+    present = subprocess.run(
+        ["git", "-C", str(repo), "cat-file", "-e", f"{base}^{{commit}}"],
+        capture_output=True,
+        env=runtime_env(repo),
+    )
+    if present.returncode:
+        raise RampError(f"WRONG_BASE: pinned commit {base[:12]} is not present in this checkout. {guidance}")
+    result = subprocess.run(
+        ["git", "-C", str(repo), "merge-base", "--is-ancestor", base, "HEAD"],
+        capture_output=True,
+        env=runtime_env(repo),
+    )
+    if result.returncode == 1:
+        fork_point = git(repo, "merge-base", base, "HEAD").decode().strip()
+        shared = f"it shares history only up to {fork_point[:12]}" if fork_point else "it shares no history"
+        raise RampError(
+            f"WRONG_BASE: this checkout is not built on pinned commit {base[:12]} ({shared}). {guidance}"
+        )
+    if result.returncode:
+        raise RampError(
+            f"git merge-base --is-ancestor failed: {result.stderr.decode(errors='replace').strip()}"
+        )
+
+
 def doctor(repo: Path, dependencies: bool = True) -> dict:
     prof = profile()
     failures = []
-    git(repo, "merge-base", "--is-ancestor", prof["base_sha"], "HEAD")
+    require_pinned_base(repo, prof["base_sha"])
     for relative in prof["editable_files"]:
         if relative not in prof["sources"]:
             failures.append(f"Edit path has no approved source: {relative}")
@@ -265,16 +318,36 @@ def prepare(repo: Path, spec: Path) -> dict:
     }
 
 
+def validate_assessment(repo: Path, task: dict, record: dict):
+    if not isinstance(record, dict):
+        raise RampError("Architecture assessment must be an object.")
+    if record.get("decision") not in {"COMPATIBLE", "REVISE", "NEEDS_MAINTAINER"}:
+        raise RampError("Architecture assessment needs a supported decision.")
+    if record.get("task_sha256") != digest(canonical(task)):
+        raise RampError("Architecture assessment does not match the current task.")
+    rationale, sources = record.get("rationale"), record.get("sources")
+    if (
+        not isinstance(rationale, str)
+        or len(rationale.strip()) < 30
+        or not isinstance(sources, list)
+        or not sources
+        or any(not isinstance(source, str) or not source.strip() for source in sources)
+    ):
+        raise RampError("Architecture assessment requires a substantive rationale and source references.")
+    for reference in sources:
+        try:
+            context(repo, reference)
+        except (OSError, UnicodeError) as exc:
+            raise RampError(f"Cannot read assessment source {reference}: {exc}") from exc
+    alternative = record.get("alternative", "")
+    if not isinstance(alternative, str) or (record["decision"] != "COMPATIBLE" and not alternative.strip()):
+        raise RampError("Pushback must include an alternative or the maintainer decision needed.")
+
+
 def assess(
     repo: Path, task_id: str, decision: str, rationale: str, sources: list[str], alternative: str
 ) -> dict:
     task = read_task(repo, task_id)
-    if len(rationale.strip()) < 30 or not sources:
-        raise RampError("Architecture assessment requires a substantive rationale and source references.")
-    for reference in sources:
-        context(repo, reference)
-    if decision != "COMPATIBLE" and not alternative.strip():
-        raise RampError("Pushback must include an alternative or the maintainer decision needed.")
     record = {
         "decision": decision,
         "rationale": rationale,
@@ -283,6 +356,7 @@ def assess(
         "task_sha256": digest(canonical(task)),
         "kind": "agent_assessment_not_human_approval",
     }
+    validate_assessment(repo, task, record)
     directory = task_dir(repo, task_id)
     history = (
         load(directory / "architecture-history.json")
@@ -459,7 +533,10 @@ def policy_provenance(repo: Path) -> dict:
 def scope_findings(repo: Path, task: dict) -> list[dict]:
     managed = attachment(repo)["files"]
     findings = []
-    for relative in changed(repo, task["base_sha"]):
+    tracked = set(git(repo, "ls-files", "-z").decode().split("\0"))
+    inputs = execution_inputs(repo)
+    unexpected = inputs - tracked - set(task["editable_files"])
+    for relative in sorted(set(changed(repo, task["base_sha"])) | unexpected):
         if relative.startswith(".ramp/"):
             continue
         path = safe_path(repo, relative)
@@ -483,8 +560,33 @@ def scope_findings(repo: Path, task: dict) -> list[dict]:
     return findings
 
 
+def execution_inputs(repo: Path) -> set[str]:
+    """Inventory source, test data/helpers and tools, including Git-ignored additions.
+
+    Runtime caches are excluded; installed dependency versions are recorded separately.
+    This is a reproducibility boundary, not isolation from arbitrary repository code.
+    """
+    excluded = {"__pycache__", ".pytest_cache", ".ruff_cache"}
+    paths = set()
+    for name in ("src", "tests", "utils"):
+        root = repo / name
+        if root.is_symlink():
+            raise RampError(f"Symlink not permitted: {name}")
+        for directory, subdirs, files in os.walk(root, followlinks=False):
+            for subdir in subdirs:
+                path = Path(directory) / subdir
+                if path.is_symlink():
+                    raise RampError(f"Symlink not permitted: {path.relative_to(repo)}")
+            subdirs[:] = [name for name in subdirs if name not in excluded and not name.endswith(".egg-info")]
+            paths.update(str((Path(directory) / name).relative_to(repo)) for name in files)
+    for path in repo.iterdir():
+        if path.suffix in {".py", ".ini", ".cfg", ".toml"} or path.name == "Makefile":
+            paths.add(path.name)
+    return paths
+
+
 def fingerprint(repo: Path, task: dict) -> str:
-    paths = set(changed(repo, task["base_sha"])) | set(profile()["sources"])
+    paths = set(changed(repo, task["base_sha"])) | set(profile()["sources"]) | execution_inputs(repo)
     contents = []
     for relative in sorted(paths):
         if relative.startswith(".ramp/"):
@@ -503,6 +605,7 @@ def fingerprint(repo: Path, task: dict) -> str:
                 "kit": kit_hash(),
                 "python": sys.version,
                 "packages": packages,
+                "execution_environment": runtime_env(repo),
                 "base": task["base_sha"],
             }
         )
@@ -550,10 +653,27 @@ def diagnostic(repo: Path, task: dict) -> list[dict]:
 
 
 def runtime_env(repo: Path) -> dict:
-    env = os.environ.copy()
+    # Inherited pytest/Python overrides can change what a check runs. Keep only
+    # platform essentials, then set the runner's explicit execution contract.
+    inherited = {
+        "HOME",
+        "USERPROFILE",
+        "SYSTEMROOT",
+        "WINDIR",
+        "COMSPEC",
+        "PATHEXT",
+        "TMPDIR",
+        "TMP",
+        "TEMP",
+        "LANG",
+        "TZ",
+        "LD_LIBRARY_PATH",
+        "DYLD_LIBRARY_PATH",
+    }
+    env = {key: value for key, value in os.environ.items() if key in inherited or key.startswith("LC_")}
     env.update(
         {
-            "PATH": str(Path(sys.executable).parent) + os.pathsep + env.get("PATH", ""),
+            "PATH": str(Path(sys.executable).parent) + os.pathsep + os.defpath,
             "PYTHONPATH": str(repo / "src"),
             "HF_HUB_OFFLINE": "1",
             "TRANSFORMERS_OFFLINE": "1",
@@ -562,6 +682,7 @@ def runtime_env(repo: Path) -> dict:
             "MKL_NUM_THREADS": "1",
             "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
             "PYTHONDONTWRITEBYTECODE": "1",
+            "PYTHONNOUSERSITE": "1",
         }
     )
     return env
@@ -653,13 +774,13 @@ def expected_regression(check: dict, task: dict) -> bool:
     if len(tests) != 1 or tests[0]["status"] != "FAIL" or check.get("exit_code") != 1:
         return False
     detail = tests[0].get("detail", "")
-    return detail.startswith(task.get("baseline_error", "IndexError") + ":") and any(
+    return detail.startswith(task["baseline_error"] + ":") and any(
         path in detail for path in profile()["implementation_files"]
     )
 
 
 def regression_failure(check: dict, task: dict) -> str:
-    expected = task.get("baseline_error", "IndexError")
+    expected = task["baseline_error"]
     tests = check.get("tests", [])
     if check.get("status") == "ERROR":
         return "REGRESSION_EXECUTION_ERROR: inspect collection/import/runtime errors in the regression log."
@@ -740,10 +861,19 @@ def verify(repo: Path, task_id: str, level: str, phase: str) -> dict:
         raise RampError("; ".join(preflight["findings"]))
     review = load(directory / "architecture.json") if (directory / "architecture.json").exists() else {}
     findings = scope_findings(repo, task) + diagnostic(repo, task) + assertion_findings(repo, task)
-    if review.get("decision") != "COMPATIBLE" or review.get("task_sha256") != digest(canonical(task)):
-        findings.append(
-            {"rule": "DESIGN", "message": "Current task needs a compatible, cited architecture assessment."}
-        )
+    try:
+        if not (directory / "architecture.json").exists():
+            raise RampError(
+                f"No architecture assessment recorded for {task_id}; run assess {task_id} "
+                "--decision <decision> --rationale <source-grounded-rationale> --source <approved-path> "
+                "(allowed decisions: COMPATIBLE | REVISE | NEEDS_MAINTAINER) "
+                "before verifying. Assess the proposal before choosing a decision."
+            )
+        validate_assessment(repo, task, review)
+        if review["decision"] != "COMPATIBLE":
+            raise RampError("Current task needs a compatible architecture assessment.")
+    except RampError as exc:
+        findings.append({"rule": "DESIGN", "message": str(exc)})
     before = fingerprint(repo, task)
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     logs = directory / "runs" / run_id
@@ -876,7 +1006,7 @@ def readiness(repo: Path, task: dict) -> dict:
     candidate = load(directory / "candidate.json") if (directory / "candidate.json").exists() else None
     baseline = load(directory / "baseline.json") if (directory / "baseline.json").exists() else None
     replay = load(directory / "replay.json") if (directory / "replay.json").exists() else None
-    if candidate is None:
+    if not (directory / "candidate.json").exists():
         return {
             "status": "NOT_RUN",
             "reason": "Run verification.",
@@ -884,12 +1014,23 @@ def readiness(repo: Path, task: dict) -> dict:
             "baseline": baseline,
             "replay": replay,
         }
-    if candidate["fingerprint"] != fingerprint(repo, task):
+    if (
+        not isinstance(candidate, dict)
+        or not isinstance(candidate.get("fingerprint"), str)
+        or candidate.get("status") not in ("PASS", "FAIL", "ERROR", "INCOMPLETE")
+    ):
+        status, reason = (
+            "INCOMPLETE",
+            "Malformed candidate record: expected fingerprint and status; rerun verify.",
+        )
+    elif candidate["fingerprint"] != fingerprint(repo, task):
         status, reason = "STALE", "Code, policy, requirements or assessment changed; rerun verification."
+    elif candidate.get("level") not in ("fast", "full"):
+        status, reason = "INCOMPLETE", "Malformed candidate level; rerun verify."
     elif candidate["status"] != "PASS":
         status, reason = candidate["status"], "Resolve failed, skipped or unavailable checks."
     elif not any(
-        e
+        isinstance(e, dict)
         and e.get("status") == "EXPECTED_FAILURE"
         and e.get("task_sha256") == digest(canonical(task))
         and e.get("test_sha256") == digest(safe_path(repo, profile()["test_file"]).read_bytes())
@@ -901,10 +1042,8 @@ def readiness(repo: Path, task: dict) -> dict:
         )
     elif candidate["level"] != "full":
         status, reason = "FAST_CHECKS_PASSED", "Run full verification before calling the PR clean."
-    elif not any(c["id"] == "test-strength" and c["status"] == "PASS" for c in candidate.get("checks", [])):
-        status, reason = "INCOMPLETE", "Full verification must include the disposable fix-removal replay."
-    elif set(required_checks()) != {c["id"] for c in candidate.get("checks", [])}:
-        status, reason = "INCOMPLETE", "Executed checks do not match the required profile checks."
+    elif failure := successful_checks_failure(candidate):
+        status, reason = "INCOMPLETE", failure
     else:
         status, reason = (
             "READY_FOR_HUMAN_REVIEW",
@@ -917,3 +1056,41 @@ def readiness(repo: Path, task: dict) -> dict:
         "baseline": baseline,
         "replay": replay,
     }
+
+
+def successful_checks_failure(candidate: dict) -> str | None:
+    """Name the evidence that needs repair; a valid full success returns no failure."""
+    checks = candidate.get("checks")
+    if not isinstance(checks, list) or any(not isinstance(check, dict) for check in checks):
+        return "Malformed checks: expected a list of check records; rerun full verification."
+    ids = [check.get("id") for check in checks]
+    if any(not isinstance(check_id, str) for check_id in ids):
+        return "Malformed check IDs: each check needs a string ID; rerun full verification."
+    duplicates = sorted({check_id for check_id in ids if ids.count(check_id) > 1})
+    if duplicates:
+        return "Duplicate check IDs: " + ", ".join(duplicates) + "; rerun full verification."
+    required = required_checks()
+    missing, unexpected = sorted(set(required) - set(ids)), sorted(set(ids) - set(required))
+    if missing:
+        return "Missing required checks: " + ", ".join(missing) + "; run full verification."
+    if unexpected:
+        return "Unexpected check IDs: " + ", ".join(unexpected) + "; rerun full verification."
+    failed = [
+        f"{check['id']}={check.get('status', 'MISSING')}" for check in checks if check.get("status") != "PASS"
+    ]
+    if failed:
+        return "Required checks did not pass: " + ", ".join(failed) + "; inspect their logs and rerun."
+    if "required_checks" not in candidate:
+        return "Missing required_checks in candidate record; rerun full verification."
+    if candidate["required_checks"] != required:
+        return "required_checks mismatch with current policy; rerun full verification."
+    if "counts" not in candidate:
+        return "Missing counts in candidate record; rerun full verification."
+    expected = {
+        state: len(checks) if state == "PASS" else 0
+        for state in ("PASS", "FAIL", "ERROR", "SKIPPED", "NOT_RUN")
+    }
+    expected["checks"] = len(checks)
+    if candidate["counts"] != expected:
+        return "counts mismatch with executed check results; rerun full verification."
+    return None
