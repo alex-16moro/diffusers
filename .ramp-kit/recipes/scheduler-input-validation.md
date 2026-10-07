@@ -1,7 +1,28 @@
-# First contribution: scheduler input validation
+# Contribution recipe: scheduler input validation
 
 Supported profile: input validation in DDPM `set_timesteps` at the exact revision in `profiles/diffusers.json`, including its `# Copied from` copy in the parallel scheduler.
 The kit prepares context and a structural test scaffold. It does not supply a finished source patch to the development agent.
+
+## Eligibility and boundaries
+
+Use this recipe for a bounded validation improvement in the existing DDPM `set_timesteps` API, preserving valid behaviour and the existing argument contract. The profile, not this description alone, defines editable paths and executable checks. The regression must produce the exception and implementation traceback required by baseline verification below; requests that cannot meet that contract need a reviewed extension.
+
+Out of scope: new public APIs or dependencies, scheduler mathematics, pipeline/model changes, broad refactoring, and changes outside the installed profile. If inspection reveals one of these needs, explain the impact and propose a smaller task or a platform-owner extension before implementation. Do not edit the kit or allowlist from a contribution session.
+
+A bounded change can touch multiple files: the marked parallel implementation is a required dependency already in scope. Inspect documentation, exports and shared tests for impact; if necessary edits fall outside the profile, surface the gap instead of silently omitting them.
+
+## Source map and architecture review
+
+| Question | Source to inspect |
+|---|---|
+| Which API owns validation and existing error precedence? | `src/diffusers/schedulers/scheduling_ddpm.py`, `DDPMScheduler.set_timesteps` |
+| Which implementation must stay consistent? | `src/diffusers/schedulers/scheduling_ddpm_parallel.py`, including its copy marker |
+| Which patterns and valid behaviours should be preserved? | `tests/schedulers/test_scheduler_ddpm.py`, the parallel scheduler tests and shared scheduler tests |
+| Which conventions and checks apply? | `.ai/AGENTS.md`, applicable references, philosophy, contribution guidance and workflow paths approved by `profiles/diffusers.json` |
+
+Read the relevant symbols and neighbouring tests first. Cite the actual evidence for where the check belongs, compatibility, error style and related-file obligations. An observed pattern is evidence to evaluate, not a universal architectural rule.
+
+`examples/empty-timesteps.json` is one worked task. Other eligible requests need their own criteria, tests and observed failure; do not reuse its solution or evidence as proof of generalisation.
 
 ## The user journey
 
@@ -21,7 +42,7 @@ Choose a short task ID for the request, for example `my-task`, using lowercase l
 
 All commands run from the Diffusers checkout with `.ramp-venv`, the environment the kit prepared. Read `.ai/AGENTS.md`; upstream coding and review instructions still apply. Setup is already supplied by the kit: do not create another environment or install or update skills. Inspect local skills only; registry listing may require network access.
 
-Before `prepare`, write `.ramp/specs/<task-id>.json` from the actual request and the code you inspected. Use `.ramp-kit/examples/empty-timesteps.json` only as a schema guide for a different, earlier task: do not copy its request, criteria, test names or expected error. Keep draft specs outside `.ramp/<task-id>/`, which `prepare` creates.
+Before `prepare`, write `.ramp/specs/<task-id>.json` from the actual request and the code you inspected. Use `.ramp-kit/examples/empty-timesteps.json` only as a schema guide: derive the request, criteria, test names and expected error independently from this task, including when rehearsing the worked example. Keep draft specs outside `.ramp/<task-id>/`, which `prepare` creates.
 
 Set these spec fields from what you observe in this checkout:
 - `regression_test`: the one test that reproduces the reported problem against the unchanged implementation.
