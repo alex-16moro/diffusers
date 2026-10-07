@@ -1,0 +1,51 @@
+{
+  "id": "empty-timesteps",
+  "title": "Reject an empty custom timestep list with a clear ValueError",
+  "request": "Make passing an empty custom timestep list produce a clear error while preserving valid inputs.",
+  "proposed_approach": "The engineer asked whether an empty list could be replaced with [999]. Treat that as a hypothesis and reject a silent default if library guidance prefers a clear error.",
+  "recipe": "scheduler-input-validation",
+  "editable_files": [
+    "src/diffusers/schedulers/scheduling_ddpm.py",
+    "src/diffusers/schedulers/scheduling_ddpm_parallel.py",
+    "tests/schedulers/test_scheduler_ddpm.py"
+  ],
+  "regression_test": "tests/schedulers/test_scheduler_ddpm.py::DDPMSchedulerTest::test_set_timesteps_empty_list_raises_value_error",
+  "baseline_error": "IndexError",
+  "criteria": [
+    {
+      "id": "C-EMPTY",
+      "text": "DDPMScheduler.set_timesteps and the copied DDPMParallelScheduler.set_timesteps raise ValueError when timesteps is an empty list; the existing both-argument conflict error still wins when both arguments are supplied.",
+      "tests": [
+        "tests/schedulers/test_scheduler_ddpm.py::DDPMSchedulerTest::test_set_timesteps_empty_list_raises_value_error"
+      ]
+    },
+    {
+      "id": "C-VALID",
+      "text": "A descending custom list and a single-element custom list keep their values on CPU when no device is requested.",
+      "tests": [
+        "tests/schedulers/test_scheduler_ddpm.py::DDPMSchedulerTest::test_set_timesteps_keeps_nonempty_custom_lists"
+      ]
+    },
+    {
+      "id": "C-MUTEX",
+      "text": "Passing num_inference_steps and timesteps together still raises the existing mutual-exclusion ValueError.",
+      "tests": [
+        "tests/schedulers/test_scheduler_ddpm.py::DDPMSchedulerTest::test_custom_timesteps_passing_both_num_inference_steps_and_timesteps"
+      ]
+    },
+    {
+      "id": "C-COUNT",
+      "text": "Calling set_timesteps with only num_inference_steps still builds a descending schedule of that length.",
+      "tests": [
+        "tests/schedulers/test_scheduler_ddpm.py::DDPMSchedulerTest::test_set_timesteps_num_inference_steps_still_works"
+      ]
+    }
+  ],
+  "exclusions": [
+    "Do not change scheduler numerical updates",
+    "Do not add a shared validation helper or new dependency",
+    "Do not silently replace an empty list with a default schedule",
+    "Do not publish or deploy"
+  ],
+  "base_sha": "0121a91f9d419ff7234c8a5923f82c244e6f1914"
+}
