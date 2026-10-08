@@ -1,6 +1,6 @@
 import torch
 
-from diffusers import DDPMScheduler
+from diffusers import DDPMParallelScheduler, DDPMScheduler
 
 from .test_schedulers import SchedulerCommonTest
 
@@ -189,6 +189,38 @@ class DDPMSchedulerTest(SchedulerCommonTest):
             msg="`timesteps` must start before `self.config.train_timesteps`: {scheduler.config.num_train_timesteps}}",
         ):
             scheduler.set_timesteps(timesteps=timesteps)
+
+    def test_empty_custom_timesteps(self):
+        for scheduler_class in (DDPMScheduler, DDPMParallelScheduler):
+            scheduler = scheduler_class(**self.get_scheduler_config())
+
+            with self.assertRaisesRegex(ValueError, r"`custom_timesteps` must not be empty\."):
+                scheduler.set_timesteps(timesteps=[])
+
+            with self.assertRaisesRegex(
+                ValueError, r"Can only pass one of `num_inference_steps` or `custom_timesteps`\."
+            ):
+                scheduler.set_timesteps(num_inference_steps=5, timesteps=[])
+
+    def test_custom_timesteps_validation_preserves_valid_inputs(self):
+        scheduler_class = self.scheduler_classes[0]
+        scheduler_config = self.get_scheduler_config()
+
+        for timesteps in ([100, 87, 50, 1, 0], [5]):
+            scheduler = scheduler_class(**scheduler_config)
+            scheduler.set_timesteps(timesteps=timesteps)
+
+            self.assertEqual(scheduler.timesteps.tolist(), timesteps)
+            self.assertEqual(scheduler.timesteps.device, torch.device("cpu"))
+
+    def test_count_based_inference_timesteps_unchanged(self):
+        scheduler = self.scheduler_classes[0](**self.get_scheduler_config())
+
+        scheduler.set_timesteps(num_inference_steps=10)
+
+        self.assertEqual(scheduler.timesteps.tolist(), [900, 800, 700, 600, 500, 400, 300, 200, 100, 0])
+        self.assertEqual(scheduler.timesteps.device, torch.device("cpu"))
+        self.assertFalse(scheduler.custom_timesteps)
 
     def test_full_loop_with_noise(self):
         scheduler_class = self.scheduler_classes[0]
