@@ -8,7 +8,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-from . import core
+from . import core, ledger
+from .guardrails import guardrails
 from .report import render
 
 
@@ -188,7 +189,39 @@ def parser():
     q.add_argument("--phase", choices=["baseline", "candidate"], default="candidate")
     q = sub.add_parser("report")
     q.add_argument("task")
+    q = sub.add_parser("record", help="Record an event the kit cannot observe, after it actually happened.")
+    q.add_argument("task")
+    q.add_argument("--event", choices=ledger.REPORTED_EVENTS, required=True)
+    q.add_argument("--by", required=True, help="Who performed it: the approving human, or the forge for CI.")
+    q.add_argument("--ref", default="", help="Link to the PR, CI run or approval message.")
+    q.add_argument("--status", default="", help="PASS or FAIL; remote_ci only.")
+    q.add_argument("--at", help="ISO 8601 time with timezone, when recording after the fact.")
+    q = sub.add_parser("metrics")
+    q.add_argument("--baseline-hours", type=float, help="Measured before-state cycle time, request to merge.")
+    q.add_argument("--baseline-source", default="", help="Who measured the baseline and how.")
+    sub.add_parser("guardrails")
     return p
+
+
+def track(repo: Path, args, result: dict):
+    """Ledger entries follow successful kit commands; failed commands are already reported to the caller."""
+    if args.command == "prepare":
+        task = core.load(Path(result["task"]))
+        ledger.append(Path(result["task"]).parent, "prepared", recipe=task["recipe"], observed_by="kit")
+    elif args.command == "assess":
+        ledger.append(core.task_dir(repo, args.task), "assessed", decision=result["decision"], observed_by="kit")
+    elif args.command == "verify":
+        ledger.append(
+            core.task_dir(repo, args.task),
+            "verified",
+            phase=result["phase"],
+            level=result["level"],
+            status=result["status"],
+            run_id=result["run_id"],
+            observed_by="kit",
+        )
+    elif args.command == "report":
+        ledger.append(core.task_dir(repo, args.task), "reported", status=result["status"], observed_by="kit")
 
 
 def main(argv=None) -> int:
@@ -211,8 +244,15 @@ def main(argv=None) -> int:
             )
         elif args.command == "verify":
             result = core.verify(repo, args.task, args.level, args.phase)
-        else:
+        elif args.command == "report":
             result = render(repo, args.task)
+        elif args.command == "record":
+            result = ledger.record(repo, args.task, args.event, args.by, args.ref, args.status, args.at)
+        elif args.command == "metrics":
+            result = ledger.metrics(repo, args.baseline_hours, args.baseline_source)
+        else:
+            result = guardrails(repo)
+        track(repo, args, result)
         print(json.dumps(result, indent=2, ensure_ascii=False))
         status = result.get("status")
         if status == "ERROR":
