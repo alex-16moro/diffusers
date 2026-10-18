@@ -304,13 +304,16 @@ class DDPMParallelScheduler(SchedulerMixin, ConfigMixin):
             timesteps (`list[int]`, *optional*):
                 Custom timesteps used to support arbitrary spacing between timesteps. If `None`, then the default
                 timestep spacing strategy of equal spacing between timesteps is used. If `timesteps` is passed,
-                `num_inference_steps` must be `None`.
+                `num_inference_steps` must be `None`. The list must be non-empty.
 
         """
         if num_inference_steps is not None and timesteps is not None:
             raise ValueError("Can only pass one of `num_inference_steps` or `custom_timesteps`.")
 
         if timesteps is not None:
+            if len(timesteps) == 0:
+                raise ValueError("`timesteps` cannot be empty.")
+
             for i in range(1, len(timesteps)):
                 if timesteps[i] >= timesteps[i - 1]:
                     raise ValueError("`custom_timesteps` must be in descending order.")
