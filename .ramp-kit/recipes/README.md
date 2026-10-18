@@ -26,4 +26,6 @@ The engineer describes the problem in normal language. The agent selects the rec
 
 Every supported recipe should state: contribution type; eligibility and exclusions; pinned source and canonical examples; related-file obligations; architecture review questions; task/scaffold inputs; verification and its limits; handoff evidence; and conditions requiring a broader plan.
 
+[TEMPLATE.md](TEMPLATE.md) lays out these sections for a team proposing the next recipe. It is not a recipe and provides no coverage; do not route tasks to it. `metrics` reports each recipe's time from first prepared task to first merge, which is the time-to-value for a team adopting it.
+
 Adding a Markdown recipe alone does not add executable support. The platform owner must review the profile, runner assumptions, installation and verification for the new contribution type. Existing upstream instructions remain authoritative for repository conventions.

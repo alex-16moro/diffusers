@@ -1,5 +1,5 @@
 {
-  "kit_sha256": "e262a06b57e40c2d1710caf0bf91f038bda94d8fbcdc035e4bf433ce1c372d63",
+  "kit_sha256": "31bf7658a3f80a627ef47b636039bfa9110a70271b69ace75464d6d77e2bd456",
   "base_sha": "0121a91f9d419ff7234c8a5923f82c244e6f1914",
   "files": {
     ".ramp-kit/rampkit/__init__.py": "fdac7ace08b0d5f5b495a60167bf15a90395a8eeee006ec5c10a69bcd02fbc47",
@@ -11,7 +11,8 @@
     ".ramp-kit/rampkit/report.py": "5b0b114634d944efb00121fd35446ba82f435e3123b0abfa31d1b75aefd89b12",
     ".ramp-kit/rampkit/reviewer_text.py": "59dc203bae4b1c1a31fe01061b1c2b35088ffca8175f5da697ba773242dfc056",
     ".ramp-kit/profiles/diffusers.json": "b46085a3a8cb4e16e82ec485e3e79766c9f8f122bb2421cb7ca1879983f16273",
-    ".ramp-kit/recipes/README.md": "e1689a33e9dab2e9467774534f3930c9f3c756f654aefb9481365c7b1b674a26",
+    ".ramp-kit/recipes/README.md": "6923ce952e4e13d63ff10d0dc44e6dea9af446598f489d44b56ef911254d357d",
+    ".ramp-kit/recipes/TEMPLATE.md": "190441ced602a7faf9554e6d891d914b6c60ddb6117b9add86895fa387b758ce",
     ".ramp-kit/recipes/scheduler-input-validation.md": "120f95dc5746965758830209a066a23e6da85d456b81e1ae70b24373cfb0aa15",
     ".ramp-kit/templates/cursor-environment.json": "8980fc838e76c1df6ac1c2aa4868ae53faca7c6d70cc7173b20610a182e8f2f9",
     ".ramp-kit/templates/cursorignore.txt": "b2eac3c1abfeb8a5fe27b4e69891c521886c40401fa277c321648e409f9fb935",
