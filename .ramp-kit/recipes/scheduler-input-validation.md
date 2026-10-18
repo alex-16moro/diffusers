@@ -93,9 +93,23 @@ Open `.ramp/<task-id>/review.html` or `review.md`; inspect the patch and `PR-DRA
 
 Publish only after a human approves the exact wording, and only to the target named by the installation (see the entry rule). The commit must contain:
 - the source and test changes, and
-- the task record that fork CI re-verifies: `.ramp/<task-id>/task.json`, `.ramp/<task-id>/architecture.json` and `.ramp/<task-id>/architecture-history.json`.
+- the task record that fork CI re-verifies: `.ramp/<task-id>/task.json`, `.ramp/<task-id>/architecture.json` and `.ramp/<task-id>/architecture-history.json`, and
+- the workflow ledger `.ramp/<task-id>/ledger.json`.
 
-Fork CI rejects a PR without the task record (`No task record committed`). Do not commit run logs, reports, the scaffold or the draft spec; CI regenerates its own evidence.
+Fork CI rejects a PR without the task record (`No task record committed`). Do not commit run logs, reports, the scaffold, the draft spec, `metrics.json` or `guardrails.md`; CI regenerates its own evidence.
+
+## Workflow evidence
+
+`prepare`, `assess`, `verify` and `report` append to `.ramp/<task-id>/ledger.json` automatically. The kit cannot see what happens outside it, so record those events once they have actually happened, naming who did them:
+
+```bash
+.ramp-venv/bin/python .ramp-kit/run.py --repo . record <task-id> --event wording_approved --by "<approving human>"
+.ramp-venv/bin/python .ramp-kit/run.py --repo . record <task-id> --event pr_opened --by "<who opened it>" --ref <pr-url>
+.ramp-venv/bin/python .ramp-kit/run.py --repo . record <task-id> --event remote_ci --by github --status PASS --ref <run-url>
+.ramp-venv/bin/python .ramp-kit/run.py --repo . record <task-id> --event merged --by "<maintainer>" --ref <pr-url> --at <merge-time>
+```
+
+Never record an approval nobody gave. `metrics` aggregates cycle time, rework and per-recipe time to first merge across tasks; pass `--baseline-hours` and `--baseline-source` only with a before-state measurement from the process owner. `guardrails` writes `.ramp/guardrails.md`, a summary of what the agent can edit and read, which checks gate it, and what the kit does not enforce.
 
 ## Explicit limits
 

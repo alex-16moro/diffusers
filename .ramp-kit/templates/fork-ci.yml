@@ -52,6 +52,12 @@ jobs:
         run: |
           test -f policy/.ramp-kit/runtime/ci_provenance.py || { echo 'The base installation has no provenance recorder; upgrade the kit on the base branch.' >&2; exit 1; }
           python policy/.ramp-kit/runtime/ci_provenance.py --policy policy --candidate candidate --output candidate/.ramp/ci-provenance.json
+      - name: Summarise workflow metrics and guardrails
+        if: always()
+        run: |
+          test -x candidate/.ramp-venv/bin/python || { echo 'No prepared environment; nothing to summarise.'; exit 0; }
+          candidate/.ramp-venv/bin/python policy/.ramp-kit/run.py --repo candidate metrics
+          candidate/.ramp-venv/bin/python policy/.ramp-kit/run.py --repo candidate guardrails
       - uses: actions/upload-artifact@v4
         if: always()
         with:
