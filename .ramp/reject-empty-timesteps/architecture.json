@@ -1,0 +1,14 @@
+{
+  "decision": "COMPATIBLE",
+  "rationale": "Goal is a clear error for empty custom timesteps. Substituting [999] would guess user intent and hide the invalid call, which conflicts with code_style.md ('Do not guess user intent and silently correct behavior') and philosophy.md ('Raising concise error messages is preferred to silently correct erroneous input'). The owning check is DDPMScheduler.set_timesteps; the descending-order loop is a no-op for [], then timesteps[0] raises IndexError. Raise ValueError after the existing mutually exclusive argument check and before timesteps[0], matching nearby ValueError style. Propagate via the # Copied from marker in scheduling_ddpm_parallel.py rather than hand-editing the copy. Existing tests already cover order, size, and argument-conflict cases; add a regression plus valid-input guards in DDPMSchedulerTest.",
+  "sources": [
+    "src/diffusers/schedulers/scheduling_ddpm.py",
+    "src/diffusers/schedulers/scheduling_ddpm_parallel.py",
+    "tests/schedulers/test_scheduler_ddpm.py",
+    ".ai/references/code_style.md",
+    "docs/source/en/conceptual/philosophy.md"
+  ],
+  "alternative": "If a caller insisted on continuing after [], the compatible alternative is still a ValueError; changing the contract to accept or rewrite empty input would need a maintainer decision.",
+  "task_sha256": "a727c776d02a8d5493fa987e7bee10c81c1e007668297717ebc359fd01dceba9",
+  "kind": "agent_assessment_not_human_approval"
+}

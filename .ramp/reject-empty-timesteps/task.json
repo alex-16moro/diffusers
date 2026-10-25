@@ -1,0 +1,51 @@
+{
+  "id": "reject-empty-timesteps",
+  "title": "Reject empty custom timesteps with a clear ValueError",
+  "request": "As a library consumer, I want DDPM set_timesteps to reject an empty custom timestep list with a clear ValueError, while valid custom and count-based inputs and the existing mutually exclusive argument contract stay unchanged.",
+  "proposed_approach": "Consider substituting an empty list with a default such as [999] so inference can continue; evaluate that suggestion against library conventions before implementing.",
+  "recipe": "scheduler-input-validation",
+  "editable_files": [
+    "src/diffusers/schedulers/scheduling_ddpm.py",
+    "src/diffusers/schedulers/scheduling_ddpm_parallel.py",
+    "tests/schedulers/test_scheduler_ddpm.py"
+  ],
+  "regression_test": "tests/schedulers/test_scheduler_ddpm.py::DDPMSchedulerTest::test_empty_custom_timesteps",
+  "baseline_error": "IndexError",
+  "criteria": [
+    {
+      "id": "AC1",
+      "text": "Both DDPM implementations reject empty custom timesteps with a useful ValueError; the existing argument-conflict error keeps precedence when both timestep arguments are passed.",
+      "tests": [
+        "tests/schedulers/test_scheduler_ddpm.py::DDPMSchedulerTest::test_empty_custom_timesteps"
+      ]
+    },
+    {
+      "id": "AC2",
+      "text": "Normal and single-element custom timesteps keep their values and stay on CPU when that device is requested.",
+      "tests": [
+        "tests/schedulers/test_scheduler_ddpm.py::DDPMSchedulerTest::test_custom_timesteps_validation_preserves_valid_inputs"
+      ]
+    },
+    {
+      "id": "AC3",
+      "text": "Passing both num_inference_steps and timesteps still raises the existing conflict error.",
+      "tests": [
+        "tests/schedulers/test_scheduler_ddpm.py::DDPMSchedulerTest::test_custom_timesteps_passing_both_num_inference_steps_and_timesteps"
+      ]
+    },
+    {
+      "id": "AC4",
+      "text": "Count-based inference timesteps from num_inference_steps still work.",
+      "tests": [
+        "tests/schedulers/test_scheduler_ddpm.py::DDPMSchedulerTest::test_count_based_inference_timesteps_unchanged"
+      ]
+    }
+  ],
+  "exclusions": [
+    "No scheduler numerical-update changes",
+    "No new exports or dependencies",
+    "No silent replacement of invalid input",
+    "No remote publication or deployment"
+  ],
+  "base_sha": "0121a91f9d419ff7234c8a5923f82c244e6f1914"
+}

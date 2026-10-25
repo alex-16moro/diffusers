@@ -1,0 +1,71 @@
+[
+  {
+    "event": "prepared",
+    "at": "2026-10-25T14:15:52+00:00",
+    "where": "local",
+    "recipe": "scheduler-input-validation",
+    "observed_by": "kit"
+  },
+  {
+    "event": "assessed",
+    "at": "2026-10-25T14:15:57+00:00",
+    "where": "local",
+    "decision": "COMPATIBLE",
+    "observed_by": "kit"
+  },
+  {
+    "event": "verified",
+    "at": "2026-10-25T14:16:15+00:00",
+    "where": "local",
+    "phase": "baseline",
+    "level": "fast",
+    "status": "EXPECTED_FAILURE",
+    "run_id": "20261025T141611489021Z",
+    "observed_by": "kit"
+  },
+  {
+    "event": "verified",
+    "at": "2026-10-25T14:16:43+00:00",
+    "where": "local",
+    "phase": "candidate",
+    "level": "fast",
+    "status": "FAIL",
+    "run_id": "20261025T141634235311Z",
+    "observed_by": "kit"
+  },
+  {
+    "event": "verified",
+    "at": "2026-10-25T14:17:01+00:00",
+    "where": "local",
+    "phase": "candidate",
+    "level": "fast",
+    "status": "PASS",
+    "run_id": "20261025T141652878943Z",
+    "observed_by": "kit"
+  },
+  {
+    "event": "verified",
+    "at": "2026-10-25T14:17:33+00:00",
+    "where": "local",
+    "phase": "candidate",
+    "level": "full",
+    "status": "PASS",
+    "run_id": "20261025T141706208274Z",
+    "observed_by": "kit"
+  },
+  {
+    "event": "reported",
+    "at": "2026-10-25T14:17:37+00:00",
+    "where": "local",
+    "status": "READY_FOR_HUMAN_REVIEW",
+    "observed_by": "kit"
+  },
+  {
+    "event": "pr_opened",
+    "at": "2026-10-25T14:18:31+00:00",
+    "where": "local",
+    "by": "cursor-agent",
+    "observed_by": "reported",
+    "ref": "https://github.com/alex-16moro/diffusers/pull/31"
+  }
+]
